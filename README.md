@@ -1,11 +1,11 @@
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/logoBowerbirdLarge.png)
 
 # Bowerbird
-Bowerbird is a Python package that performs agglomerative hierarchical clustering (AHC) with smart statistical follow-up analyses. It also generates publication-ready visuals. A scientific publication in which Bowerbird is used, is (Gool et al., 12021).
+Bowerbird is a Python package that performs agglomerative hierarchical clustering (AHC) with smart statistical follow-up analyses. It also generates publication-ready visuals. A scientific publication in which Bowerbird is used, is (Gool et al., 12021 H.E.).
 
 Bowerbirds, or _Ptilonorhynchidae,_ are known for complex courtship behaviour. :heart: In order to attract a mate, they form clusters of objects with similar properties (colours, mostly), which are put on grandiose display in their jungle courts. :palm_tree: :seedling:
 
-If you are interested in using Bowerbird for a scientific publication, or if you need help using it, please contact me! :email:
+If you are interested in using Bowerbird for a scientific publication, or if you need help using it, please contact me! Feature suggestions are also welcome. :email:
 
 # Install
 Save ```Bowerbird.py``` to your project's code folder.
@@ -34,6 +34,7 @@ Bowerbird.AHCCompute(directoryData, dataSetName, linkageType, dimensionalWeights
 ```
 To visualise results:
 ```python
+# Fun fact: some bowerbirds are masters of mimicry, emulating the sounds of pigs, humans and... waterfalls.
 directoryFigures            = "./figures/"
 numberOfClustersHighest     = 10
 numberOfClustersLowest      = 3
