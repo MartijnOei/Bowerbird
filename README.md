@@ -5,9 +5,10 @@ Bowerbird is a Python package that performs agglomerative hierarchical clusterin
 
 Bowerbirds, or _Ptilonorhynchidae,_ are known for complex courtship behaviour. :heart: In order to attract a mate, they form clusters of objects with similar properties (colours, mostly), which are put on grandiose display in their jungle courts. :palm_tree: :seedling:
 
-Do you need help, or are you interested in using Bowerbird for a scientific publication, contact me!
+If you are interested in using Bowerbird for a scientific publication, or if you need help, please contact me! :email:
 
 # Install
+Save ```Bowerbird.py``` to your project's code folder.
 
 # Quick start
 Bowerbird's power is unleashed with a few successive function calls. Here's an example with mock data set `dataSetPopulations.csv`. Does this data set with observations of individuals of some bowerbird species contain evidence for distinct subpopulations (clusters)?
