@@ -3,6 +3,8 @@
 # Bowerbird
 Bowerbird is a Python package that performs agglomerative hierarchical clustering (AHC) with smart statistical follow-up analyses. It also generates publication-ready visuals.
 
+Bowerbirds, or _Ptilonorhynchidae,_ display complex courtship behaviour. In order to attract a mate, they form clusters of objects with similar properties (colours, mostly).
+
 # Install
 
 # Quick start
