@@ -103,6 +103,7 @@ Bowerbird.AHCResultsTestUniformity(directoryData, directoryFigures, linkageType,
 
 This yields:
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCCompleteCoefficientsOfDeterminationSignificance.png)
+Clearly, the parameter vectors of the birds in the mock data set are not drawn from a uniform distribution over parameter space. There is intrinsic clustering.
 
 
 <!---
