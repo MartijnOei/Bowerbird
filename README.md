@@ -56,6 +56,7 @@ Or we can visualise the cluster centres:
 
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5ClusterSignificance2.png)
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5ClusterSignificances.png)
+![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5Dendrogram.png)
 
 # Follow-up analysis
 Bowerbird is especially strong at performing statistical stress tests of the clustering result.
