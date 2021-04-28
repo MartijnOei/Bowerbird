@@ -54,6 +54,9 @@ The mean silhouette curve shows a suspicious bump at 5 clusters, and the coeffic
 Or we can visualise the cluster centres:
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5ClusterMeans.png)
 
+![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5ClusterSignificance2.png)
+![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5ClusterSignificances.png)
+
 # Follow-up analysis
 Bowerbird is especially strong at performing statistical stress tests of the clustering result.
 
