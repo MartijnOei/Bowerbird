@@ -53,24 +53,27 @@ The mean silhouette curve shows a suspicious bump at 5 clusters, and the coeffic
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5Cluster3.png)
 Or we can visualise the cluster centres:
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5ClusterMeans.png)
-Along which dimensions do the clusters deviate significantly from the population as a whole? To answer this question, Bowerbird uses a resampling technique that generates random clusters (of exactly the same sizes as the original clusters, however), and compares the original cluster centres to the random cluster centres. To resample:
+Finally, this function visualises the continuation of the clustering process until all birds are unified in a single cluster:
+![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5Dendrogram.png)
+
+# Follow-up analysis
+Bowerbird is especially strong at performing statistical tests of the clustering result.
+
+For example, along which dimensions do the clusters deviate significantly from the population as a whole? To answer this question, Bowerbird uses a resampling technique that generates random clusters (of exactly the same sizes as the original clusters, however), and compares the original cluster centres to the random cluster centres. To resample:
 ```
 numberOfClusters            = 5
 Bowerbird.AHCResampling(directoryData, directoryFigures, linkageType, numberOfClusters, dimensionsUsed, listGroupNames, listGroupIndices, dataSetName = dataSetName)
 ```
-For example, this yields the following result for cluster 2:
+This yields the following result for cluster 2, where the green dots represent the original cluster, and the grey dots the random ones:
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5ClusterSignificance2.png)
-This function also outputs the resampling results for _all_ clusters in a single figure:
+The function above also outputs the resampling results for _all_ clusters in a single figure, where deviations between 'green' and 'grey' are shown on a colour scale:
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5ClusterSignificances.png)
 
-![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5Dendrogram.png)
-
-# Follow-up analysis
-Bowerbird is especially strong at performing statistical stress tests of the clustering result.
-
-Bowerbird uses a resampling method to explore, for each cluster, on which dimensions significant deviations occur from the total population.
-To generate the resampling output for a 4-cluster scenario:
+<!---
+%Bowerbird uses a resampling method to explore, for each cluster, on which dimensions significant deviations occur from the total population.
+%To generate the resampling output for a 4-cluster scenario:
 ```python
 numberOfClusters            = 4
 Bowerbird.AHCResampling(directoryData, directoryFigures, dataSetName, linkageType, numberOfClusters, dimensionsUsed, listGroupNames, listGroupIndices)
 ```
+--->
