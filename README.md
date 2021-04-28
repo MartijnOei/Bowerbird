@@ -53,9 +53,16 @@ The mean silhouette curve shows a suspicious bump at 5 clusters, and the coeffic
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5Cluster3.png)
 Or we can visualise the cluster centres:
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5ClusterMeans.png)
-
+Along which dimensions do the clusters deviate significantly from the population as a whole? To answer this question, Bowerbird uses a resampling technique that generates random clusters (of exactly the same sizes as the original clusters, however), and compares the original cluster centres to the random cluster centres. To resample:
+```
+numberOfClusters            = 5
+Bowerbird.AHCResampling(directoryData, directoryFigures, linkageType, numberOfClusters, dimensionsUsed, listGroupNames, listGroupIndices, dataSetName = dataSetName)
+```
+For example, this yields the following result for cluster 2:
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5ClusterSignificance2.png)
+This function also outputs the resampling results for _all_ clusters in a single figure:
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5ClusterSignificances.png)
+
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5Dendrogram.png)
 
 # Follow-up analysis
