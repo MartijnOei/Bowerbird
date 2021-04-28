@@ -75,7 +75,7 @@ This yields the following result for cluster 2, where the green dots represent t
 The function above also outputs the resampling results for _all_ clusters in a single figure, where deviations between 'green' and 'grey' (in multiples of the standard deviation of the grey points) are shown on a colour scale:
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5ClusterSignificances.png)
 
-The critical reader might note that even if a data set does not really contain any intrinsic clustering, clustering algorithms - by design - will still identify 'clusters' that deviate significantly from the general population (and from eachother) on at least some dimensions. Despite this, running a clustering algorithm would in such case not be particularly meaningful.
+The critical reader might note that even if a data set would not contain _any_ intrinsic clustering (but instead represent a continuum), clustering algorithms - by design - will still suggest 'clusters' in the data that deviate significantly from the general population (and from eachother) on at least some dimensions. Despite this, running a clustering algorithm would in such case not be particularly meaningful.
 Bowerbird contains functionality to compare the actual coefficient of determination curve to curves expected if the data set did not contain any intrinsic clustering. It does this by clustering data sets drawn from a uniform distribution over the parameter space.
 
 To prepare uniform data sets:
