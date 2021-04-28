@@ -49,6 +49,11 @@ One way to judge the quality of the result is to calculate the silhouette (highe
 Each cluster has a centre, calculated simply by taking the arithmetic average of its members' parameter vectors. The cluster centre acts as an 'archetype' for that cluster, and one could argue that the goal of clustering is to find a small set of archetypes that describe the whole data set as accurate as possible. In this sense, clustering can be seen as a parameter fitting procedure. This is how the coefficient of determination changes as a function of the number of clusters:
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete2CoefficientsOfDetermination.png)
 
+The mean silhouette curve shows a suspicious bump at 5 clusters, and the coefficient of determination rapidly decays just after 5 clusters. This suggests that the data set might contain 5 clusters. Bowerbird allows us to inspect the 5 cluster result in great detail. For example, we can visualise individual clusters:
+![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5Cluster3.png)
+Or we can visualise the cluster centres:
+![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5ClusterMeans.png)
+
 # Follow-up analysis
 Bowerbird is especially strong at performing statistical stress tests of the clustering result.
 
