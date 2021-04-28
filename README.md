@@ -45,7 +45,7 @@ Bowerbird.AHCResultsVisualisation(directoryData, directoryFigures, dataSetName, 
 ```
 
 One way to judge the quality of the result is to calculate the silhouette (higher is better) for each bird. This is how the mean and standard deviation of the silhouettes evolves as a function of the number of clusters:
-![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete2ProgressionSilhouettes.pdf)
+![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete2ProgressionSilhouettes.png)
 
 # Follow-up analysis
 Bowerbird is especially strong at performing statistical stress tests of the clustering result.
