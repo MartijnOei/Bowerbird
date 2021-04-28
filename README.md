@@ -53,20 +53,22 @@ The mean silhouette curve shows a suspicious bump at 5 clusters, and the coeffic
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5Cluster3.png)
 Or we can visualise the cluster centres:
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5ClusterMeans.png)
-Finally, this function visualises the continuation of the clustering process until all birds are unified in a single cluster:
+Moreover, this function visualises the continuation of the clustering process until all birds are unified in a single cluster:
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5Dendrogram.png)
+One can see that clusters 1 and 3 will merge during the next step of the clustering algorithm. This is decided based on the fact that the inter-cluster distance between clusters 1 and 3 is smaller than that of any other cluster pair. Bowerbird provides insight into the inter-cluster distances at any desired step:
+![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5DistanceInterClustersMatrixComplete.png)
 
 # Follow-up analysis
 Bowerbird is especially strong at performing statistical tests of the clustering result.
 
 For example, along which dimensions do the clusters deviate significantly from the population as a whole? To answer this question, Bowerbird uses a resampling technique that generates random clusters (of exactly the same sizes as the original clusters, however), and compares the original cluster centres to the random cluster centres. To resample:
-```
+```python
 numberOfClusters            = 5
 Bowerbird.AHCResampling(directoryData, directoryFigures, linkageType, numberOfClusters, dimensionsUsed, listGroupNames, listGroupIndices, dataSetName = dataSetName)
 ```
 This yields the following result for cluster 2, where the green dots represent the original cluster, and the grey dots the random ones:
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5ClusterSignificance2.png)
-The function above also outputs the resampling results for _all_ clusters in a single figure, where deviations between 'green' and 'grey' are shown on a colour scale:
+The function above also outputs the resampling results for _all_ clusters in a single figure, where deviations between 'green' and 'grey' (in multiples of the standard deviation of the grey points) are shown on a colour scale:
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5ClusterSignificances.png)
 
 <!---
