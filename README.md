@@ -58,9 +58,9 @@ Moreover, this function visualises the continuation of the clustering process un
 One can see that clusters 1 and 3 will merge during the next step of the clustering algorithm. This is decided based on the fact that the inter-cluster distance between clusters 1 and 3 is smaller than that of any other cluster pair. Bowerbird provides insight into the inter-cluster distances at any desired step:
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5DistanceInterClustersMatrixComplete.png)
 Indeed, the distance between clusters 1 and 3 is the smallest distance of all.
-However, there exist different notions of inter-cluster distance: there is _complete_, _average_ and _single_ linkage. To see how the distances between the clusters differ under other notions of inter-cluster distance, Bowerbird also provides inter-cluster distance overviews for the other linkage types than the one used for arriving at the clustering result. For example, the _average_ linkage inter-cluster distances for the same clusters, are:
+However, there exist different notions of inter-cluster distance: there is _complete_, _average_ and _single_ linkage. To see how the distances between the clusters differ under other notions of inter-cluster distance, Bowerbird also provides inter-cluster distance overviews for linkage types other than the one used to arrive at the actual clustering result. For example, the average linkage inter-cluster distances for the same clusters, are:
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5DistanceInterClustersMatrixAverage.png)
-Interestingly, under this definition, cluster 1 and 5 are most nearby. The choice of linkage type really matters! However, note that cluster 2 and 4 remain the farthest apart.
+Interestingly, under _this_ notion, cluster 1 and 5 are the nearest neighbours. The choice of linkage type really matters! (However, note that cluster 2 and 4 remain the farthest apart.)
 
 # Follow-up analysis
 Bowerbird is especially strong at performing statistical tests of the clustering result.
