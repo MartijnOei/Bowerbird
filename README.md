@@ -86,7 +86,7 @@ Bowerbird.AHCPrepareDataSetUniform(directoryData, fileName, numberOfDataSets, in
 ```
 
 To perform clustering on them:
-```
+```python
 dataSetNames                = []
 for indexDataSet in range(numberOfDataSets):
     dataSetNames.append("uniform" + "_" + str(indexDataSet).zfill(numberOfNumerals))
@@ -95,6 +95,14 @@ for dataSetName in dataSetNames:
     Bowerbird.AHCCompute(directoryData, linkageType, dimensionalWeights, numberOfClustersStartSaving, dataSetName = dataSetName)
     print("Finished clustering on data set '" + dataSetName + "'!")
 ```
+
+To visualise the coefficient of determination curve comparison:
+```python
+Bowerbird.AHCResultsTestUniformity(directoryData, directoryFigures, linkageType, numberOfDataSets, numberOfNumerals, numberOfClustersHighest, numberOfClustersLowest)
+```
+
+This yields:
+![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCCompleteCoefficientsOfDeterminationSignificance.png)
 
 
 <!---
