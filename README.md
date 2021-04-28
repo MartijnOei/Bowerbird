@@ -44,8 +44,10 @@ listGroupIndices            = [0, 2, 3]
 Bowerbird.AHCResultsVisualisation(directoryData, directoryFigures, dataSetName, linkageType, numberOfClustersHighest, numberOfClustersLowest, dimensionsUsed, listGroupNames, listGroupIndices)
 ```
 
-One way to judge the quality of the result is to calculate the silhouette (higher is better) for each bird. This is how the mean and standard deviation of the silhouettes evolves as a function of the number of clusters:
+One way to judge the quality of the result is to calculate the silhouette (higher is better) for each bird. This is how the mean and standard deviation of the silhouettes change as a function of the number of clusters:
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete2ProgressionSilhouettes.png)
+Each cluster has a centre, calculated simply by taking the arithmetic average of the members' parameter vectors. The cluster centre functions as an 'archetype', and one could argue that the goal of clustering is to determine a set of archetypes that capture the contents of the whole data set. In this sense, clustering can be seen as a parameter fitting procedure. This is how the coefficient of determination changes as a function of the number of clusters:
+![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete2CoefficientsOfDetermination.png)
 
 # Follow-up analysis
 Bowerbird is especially strong at performing statistical stress tests of the clustering result.
