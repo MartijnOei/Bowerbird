@@ -67,7 +67,7 @@ Often, one normalises the data of each dimension to a common scale (from 0 to 1)
 Bowerbird.AHCResultsRawData(directoryData, directoryFigures, fileName, linkageType, numberOfClusters, indexColumnStart = indexColumnStart, dataSetName = dataSetName)
 ```
 For the mock data set, this yields:
-![plot](https://github.com/MartijnOei/Bowerbird/blobl/main/AHCComplete5ClustersRawData0.png)
+![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5ClustersRawData0.png)
 
 
 # Follow-up analysis
