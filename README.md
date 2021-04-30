@@ -121,6 +121,17 @@ numberOfObservationsSubset  = 1000 # in 1
 Bowerbird.AHCPrepareDataSetJackknife(directoryData, fileName, numberOfDataSets, numberOfObservationsSubset, indexColumnStart = indexColumnStart, numberOfNumerals = numberOfNumerals)
 ```
 In this example, each jackknife subset contains 1000 birds. The total data set contains 1423 birds. Each jackknife subset thus is a random 70% subset of the total data set.
+To perform clustering on them:
+```python
+dataSetNames                = []
+for indexDataSet in range(numberOfDataSets):
+    dataSetNames.append("jackknife" + str(numberOfObservationsSubset) + "_" + str(indexDataSet).zfill(numberOfNumerals))
+
+numberOfClustersStartSaving = 10 # in 1
+for dataSetName in dataSetNames:
+    Bowerbird.AHCCompute(directoryData, linkageType, dimensionalWeights, numberOfClustersStartSaving, dataSetName = dataSetName)
+    print("Finished clustering on data set '" + dataSetName + "'!")
+```
 
 <!---
 %Bowerbird uses a resampling method to explore, for each cluster, on which dimensions significant deviations occur from the total population.
