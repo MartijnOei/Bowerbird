@@ -62,6 +62,14 @@ However, there exist different notions of inter-cluster distance: there is _comp
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5DistanceInterClustersMatrixAverage.png)
 Interestingly, under _this_ notion, cluster 1 and 5 are the nearest neighbours. The choice of linkage type really matters! (However, note that cluster 2 and 4 remain the farthest apart.)
 
+Often, one normalises the data of each dimension to a common scale (from 0 to 1) before clustering. How does the clustering result look like for the unnormalised data? To answer this question, use:
+```python
+Bowerbird.AHCResultsRawData(directoryData, directoryFigures, fileName, linkageType, numberOfClusters, indexColumnStart = indexColumnStart, dataSetName = dataSetName)
+```
+For the mock data set, this yields:
+![plot](https://github.com/MartijnOei/Bowerbird/blobl/main/AHCComplete5ClustersRawData0.png)
+
+
 # Follow-up analysis
 Bowerbird is especially strong at performing statistical tests of the clustering result.
 
