@@ -113,6 +113,13 @@ This yields:
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCCompleteCoefficientsOfDeterminationSignificance.png)
 Clearly, the parameter vectors of the birds in the mock data set are not drawn from a uniform distribution over parameter space. There is intrinsic clustering.
 
+To what extent is the clustering result driven by the data of a few (outlier) birds? And have we already entered the sample size regime in which the clustering result has 'converged', or can we expect significant changes in the algorithm's outcome if we were to collect more data?
+To answer these questions, Bowerbird contains jackknife routines. To prepare jackknife data sets, use:
+```python
+numberOfDataSets            = 50   # in 1
+numberOfObservationsSubset  = 1000 # in 1
+Bowerbird.AHCPrepareDataSetJackknife(directoryData, fileName, numberOfDataSets, numberOfObservationsSubset, indexColumnStart = indexColumnStart, numberOfNumerals = numberOfNumerals)
+```
 
 <!---
 %Bowerbird uses a resampling method to explore, for each cluster, on which dimensions significant deviations occur from the total population.
