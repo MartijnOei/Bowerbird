@@ -145,6 +145,15 @@ When clustering a jackknife data set, some birds will be put in the same cluster
 Now take a particular full data set cluster: cluster 3, say. For each pair of birds in this cluster, we can calculate the fraction of jackknife runs (that contain the pair!) in which this pair was indeed clustered together. This _probability of staying together in jackknife clusterings_ is shown in the central column of the figure below. In the left column, we show these data collapsed into a probability distribution. In the right column, we zoom out further. For each of the cluster's observations, we calculate the fraction of relations the observation had (with _all_ other observations in the full data set) that have remained the same in jackknife runs. This yields the _correct clustering relation fraction._
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5Jackknife1000.png)
 
+# Convenience
+Bowerbird contains some additional convenience routines.
+
+After running agglomerative hierarchical clustering and settling on a particular number of clusters, one might want to reorder the clusters found (by simply changing 'labels') to facilitate a particular interpretation (brought forth in e.g. the accompanying research paper). To swap the order of the last two clusters in the 5-cluster result of the full data set, use:
+```python
+indicesNew                  = [0, 1, 2, 4, 3]
+Bowerbird.AHCReorder(directoryData, linkageType, indicesNew, dataSetName = "full")
+```
+
 <!---
 %Bowerbird uses a resampling method to explore, for each cluster, on which dimensions significant deviations occur from the total population.
 %To generate the resampling output for a 4-cluster scenario:
