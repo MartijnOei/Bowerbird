@@ -73,6 +73,7 @@ For the mock data set, this yields:
 # Follow-up analysis
 Bowerbird is especially strong at performing statistical tests of the clustering result.
 
+## Significance
 For example, along which dimensions do the clusters deviate significantly from the population as a whole? To answer this question, Bowerbird uses a resampling technique that generates random clusters (of exactly the same sizes as the original clusters, however), and compares the original cluster centres to the random cluster centres. To resample:
 ```python
 numberOfClusters            = 5
@@ -83,6 +84,7 @@ This yields the following result for cluster 2, where the green dots represent t
 The function above also outputs the resampling results for _all_ clusters in a single figure, where deviations between 'green' and 'grey' (in multiples of the standard deviation of the grey points) are shown on a colour scale:
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5ClusterSignificances.png)
 
+## Intrinsic clustering
 The critical reader might note that even if a data set does not contain _any_ intrinsic clustering (but instead represents a continuum), clustering algorithms - by design - will still suggest 'clusters' in the data that deviate significantly from the general population (and from eachother) on at least some dimensions. Despite this, running a clustering algorithm would in such case not be particularly meaningful.
 Bowerbird contains functionality to compare the actual coefficient of determination curve to curves expected if the data set did not contain any intrinsic clustering. It does this by clustering data sets drawn from a uniform distribution over the parameter space.
 
@@ -113,6 +115,7 @@ This yields:
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCCompleteCoefficientsOfDeterminationSignificance.png)
 Clearly, the parameter vectors of the birds in the mock data set are not drawn from a uniform distribution over parameter space. There is intrinsic clustering.
 
+## Jackknife
 To what extent is the clustering result driven by the data of a few (outlier) birds? And have we already entered the sample size regime in which the clustering result has 'converged', or can we expect significant changes in the algorithm's outcome if we were to collect more data?
 To answer these questions, Bowerbird contains jackknife routines. To prepare jackknife data sets, use:
 ```python
