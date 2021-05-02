@@ -154,9 +154,9 @@ indicesNew                  = [0, 1, 2, 4, 3]
 Bowerbird.AHCReorder(directoryData, linkageType, indicesNew, dataSetName = "full")
 ```
 Note that this routine does not automatically change the ordering of related results (such as the 4- or 6-cluster result).
-Make sure to rerun the visualisation routines after reordering to generate up-to-date figures.
+And make sure to rerun the visualisation routines after reordering to generate up-to-date figures.
 
-It can be useful to add the cluster ID to the raw data for other (non-Bowerbird) analyses. This is done with a single line: 
+It can be useful to add each bird's cluster ID to the raw data for other (non-Bowerbird) analyses. This is done with a single line: 
 ```python
 fileNameInput               = fileName
 fileNameOutput              = fileName[ : -4] + "Amended.csv"
