@@ -153,7 +153,13 @@ After running agglomerative hierarchical clustering and settling on a particular
 indicesNew                  = [0, 1, 2, 4, 3]
 Bowerbird.AHCReorder(directoryData, linkageType, indicesNew, dataSetName = "full")
 ```
+Note that this routine does not automatically change the ordering of related results (such as the 4- or 6-cluster result).
+Make sure to rerun the visualisation routines after reordering to generate up-to-date figures.
 
+It can be useful to add the cluster ID to the raw data for other (non-Bowerbird) analyses. This is done with a single line: 
+```python
+Bowerbird.AHCResultsAmendCSV(directoryData, fileNameInput, fileNameOutput, linkageType, numberOfClusters, dataSetName = "full")
+```
 <!---
 %Bowerbird uses a resampling method to explore, for each cluster, on which dimensions significant deviations occur from the total population.
 %To generate the resampling output for a 4-cluster scenario:
