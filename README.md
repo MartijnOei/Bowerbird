@@ -158,6 +158,8 @@ Make sure to rerun the visualisation routines after reordering to generate up-to
 
 It can be useful to add the cluster ID to the raw data for other (non-Bowerbird) analyses. This is done with a single line: 
 ```python
+fileNameInput               = fileName
+fileNameOutput              = fileName[ : -4] + "Amended.csv"
 Bowerbird.AHCResultsAmendCSV(directoryData, fileNameInput, fileNameOutput, linkageType, numberOfClusters, dataSetName = "full")
 ```
 <!---
