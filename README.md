@@ -139,6 +139,7 @@ Bowerbird.AHCResultsJackknife(directoryData, directoryFigures, linkageType, numb
 When clustering a jackknife data set, some birds will be put in the same cluster although they 'actually' belong to different ones, if the full data set clustering is to be believed. For each pair of different full data set clusters, we consider all bird pairs with one bird from one cluster, and the other bird from the other. These birds shouldn't be in the same cluster in a jackknife run. We call the probability that the birds of a random such pair are clustered together in a jackknife run, the _mixing probability._ This gives rise to the following matrix:
 ![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5Jackknife1000Mixing.png)
 
+![plot](https://github.com/MartijnOei/Bowerbird/blob/main/AHCComplete5Jackknife1000.png)
 
 <!---
 %Bowerbird uses a resampling method to explore, for each cluster, on which dimensions significant deviations occur from the total population.
