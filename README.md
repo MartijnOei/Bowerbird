@@ -16,32 +16,31 @@ Bowerbird's power is unleashed with a few successive function calls. Here's an e
 To prepare the full data set:
 ```python
 import Bowerbird
+
 directoryData               = "./data/"
-fileName                    = "dataSetPopulations.csv"
-indexColumnStart            = 0
-indexColumnEnd              = 5
+fileName                    = "BowerbirdMockData.csv"
+indexColumnStart            = 1
 dataSetName                 = "full"
-Bowerbird.AHCPrepareDataSetFull(directoryData, fileName, indexColumnStart, indexColumnEnd, dataSetName = dataSetName)
+normalise                   = [True] * 6 + [False] * 3
+Bowerbird.AHCPrepareDataSetFull(directoryData, fileName, indexColumnStart = indexColumnStart, dataSetName = dataSetName, normalise = normalise)
 ```
 To perform AHC:
 ```python
 linkageType                 = "complete"
-numberOfDimensions          = 5
-dimensionalWeights          = [1] * numberOfDimensions
-numberOfClustersStartSaving = 10
-
-Bowerbird.AHCCompute(directoryData, dataSetName, linkageType, dimensionalWeights, numberOfClustersStartSaving)
+dimensionalWeights          = [.5] * 2 + [.5] * 2 + [.2] * 5
+numberOfClustersStartSaving = 15
+Bowerbird.AHCCompute(directoryData, linkageType, dimensionalWeights, numberOfClustersStartSaving, dataSetName = dataSetName)
 ```
 To visualise results:
 ```python
 # Fun fact: some bowerbirds are masters of mimicry, emulating the sounds of pigs, humans and... waterfalls.
 directoryFigures            = "./figures/"
-numberOfClustersHighest     = 10
-numberOfClustersLowest      = 3
-dimensionsUsed              = ["body length (cm)", "body weight (g)", "court area (sq. m)", "mean song duration (s)", "waterfall mimicry"]
-listGroupNames              = [r"\textbf{body}", r"\textbf{bower}", r"\textbf{vocals}"]
-listGroupIndices            = [0, 2, 3]
-Bowerbird.AHCResultsVisualisation(directoryData, directoryFigures, dataSetName, linkageType, numberOfClustersHighest, numberOfClustersLowest, dimensionsUsed, listGroupNames, listGroupIndices)
+numberOfClustersHighest     = 15
+numberOfClustersLowest      = 2
+dimensionsUsed              = ["body length (cm)", "body mass (g)", "court area (sq. m)", "number of partners\nthis year (1)", "mean\nsong duration (s)", "mean\nsong loudness (dB)", "mimics pigs", "mimics humans", "mimics waterfalls"]
+listGroupNames              = [r"\textbf{body}", r"\textbf{courtship}", r"\textbf{vocals}"]
+listGroupIndices            = [0, 2, 4]
+Bowerbird.AHCResultsVisualisation(directoryData, directoryFigures, linkageType, numberOfClustersHighest, numberOfClustersLowest, dimensionsUsed, listGroupNames, listGroupIndices, dataSetName = dataSetName)
 ```
 
 One way to judge the quality of the result is to calculate the silhouette (higher is better) for each bird. This is how the mean and standard deviation of the silhouettes change as a function of the number of clusters:
@@ -67,6 +66,7 @@ The [silhouette](https://en.wikipedia.org/wiki/Silhouette_(clustering) "https://
 
 Often, one normalises the data of each dimension to a common scale (from 0 to 1) before clustering. How does the clustering result look like for the unnormalised data? To answer this question, use:
 ```python
+numberOfClusters            = 5
 Bowerbird.AHCResultsRawData(directoryData, directoryFigures, fileName, linkageType, numberOfClusters, indexColumnStart = indexColumnStart, dataSetName = dataSetName)
 ```
 For the mock data set, this yields:
@@ -79,7 +79,6 @@ Bowerbird is especially strong at performing statistical tests of the clustering
 ## Significance
 For example, along which dimensions do the clusters deviate significantly from the population as a whole? To answer this question, Bowerbird uses a resampling technique that generates random clusters (of exactly the same sizes as the original clusters, however), and compares the original cluster centres to the random cluster centres. To resample:
 ```python
-numberOfClusters            = 5
 Bowerbird.AHCResampling(directoryData, directoryFigures, linkageType, numberOfClusters, dimensionsUsed, listGroupNames, listGroupIndices, dataSetName = dataSetName)
 ```
 This yields the following result for cluster 2, where the green dots represent the original cluster, and the grey dots the random ones:
