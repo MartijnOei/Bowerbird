@@ -10,7 +10,7 @@ If you are interested in using Bowerbird for a scientific publication, or if you
 # Install
 Save ```Bowerbird.py``` to your project's code folder.
 
-Bowerbird's dependencies (apart from the [Python Standard Library](https://docs.python.org/3/library/ "https://docs.python.org/3/library/") are ```matplotlib```, ```numpy```, ```pandas``` and ```scipy```.
+Bowerbird's dependencies (apart from the [Python Standard Library](https://docs.python.org/3/library/ "https://docs.python.org/3/library/")) are ```matplotlib```, ```numpy```, ```pandas``` and ```scipy```.
 
 # Quick start
 Bowerbird's power is unleashed with a few successive function calls. Here's an example with mock data set `dataSetPopulations.csv` (see repo files). Do these observations of some bowerbird species contain evidence for distinct subpopulations (clusters)?
