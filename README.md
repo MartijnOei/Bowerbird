@@ -19,11 +19,11 @@ To prepare the full data set:
 ```python
 import Bowerbird
 
-directoryData               = "./data/"
-fileName                    = "BowerbirdMockData.csv"
-indexColumnStart            = 1
-dataSetName                 = "full"
-normalise                   = [True] * 6 + [False] * 3
+directoryData               = "./data/"                # path that contains the data set
+fileName                    = "BowerbirdMockData.csv"  # name of the CSV file
+indexColumnStart            = 1                        # index of the first column to be read out (0-based: so 1 refers to the second column)
+dataSetName                 = "full"                   # name given to the data set within Bowerbird; should be used in other function calls
+normalise                   = [True] * 6 + [False] * 3 # normalise the first 6 columns, but not the last 3
 Bowerbird.AHCPrepareDataSetFull(directoryData, fileName, indexColumnStart = indexColumnStart, dataSetName = dataSetName, normalise = normalise)
 ```
 To perform AHC:
