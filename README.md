@@ -28,9 +28,9 @@ Bowerbird.AHCPrepareDataSetFull(directoryData, fileName, indexColumnStart = inde
 ```
 To perform AHC:
 ```python
-linkageType                 = "complete"
-dimensionalWeights          = [.5] * 2 + [.5] * 2 + [.2] * 5
-numberOfClustersStartSaving = 15
+linkageType                 = "complete"                     # all options: "complete", "average", "single"
+dimensionalWeights          = [.5] * 2 + [.5] * 2 + [.2] * 5 # use 3 groups of dimensions (body, courtship and vocals), and give each group equal importance by dividing weight 1 over the group's dimensions
+numberOfClustersStartSaving = 15                             # save clustering output from this cluster number up to and including 2 (the 1-cluster result is trivial)
 Bowerbird.AHCCompute(directoryData, linkageType, dimensionalWeights, numberOfClustersStartSaving, dataSetName = dataSetName)
 ```
 To visualise results:
