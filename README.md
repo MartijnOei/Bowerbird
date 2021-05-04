@@ -37,8 +37,8 @@ To visualise results:
 ```python
 # Fun fact: some bowerbirds are masters of mimicry, emulating the sounds of pigs, humans and... waterfalls.
 directoryFigures            = "./figures/" # path used to store figures (doesn't need to exist yet)
-numberOfClustersHighest     = 15           # highest number of clusters to show in progression figures
-numberOfClustersLowest      = 2            # lowest  number of clusters to show in progression figures
+numberOfClustersHighest     = 15           # highest cluster number to show in progression figures
+numberOfClustersLowest      = 2            # lowest  cluster number to show in progression figures
 dimensionsUsed              = ["body length (cm)", "body mass (g)", "court area (sq. m)", "number of partners\nthis year (1)", "mean\nsong duration (s)", "mean\nsong loudness (dB)", "mimics pigs", "mimics humans", "mimics waterfalls"] # names of dimensions
 listGroupNames              = [r"\textbf{body}", r"\textbf{courtship}", r"\textbf{vocals}"] # names of groups
 listGroupIndices            = [0, 2, 4]    # indices of each group's first dimension
@@ -68,7 +68,7 @@ The [silhouette](https://en.wikipedia.org/wiki/Silhouette_(clustering) "https://
 
 Often, one normalises the data of each dimension to a common scale (from 0 to 1) before clustering. How does the clustering result look like for the unnormalised data? To answer this question, use:
 ```python
-numberOfClusters            = 5 # number of clusters to visualise the results for
+numberOfClusters            = 5 # cluster number to visualise the results for
 Bowerbird.AHCResultsRawData(directoryData, directoryFigures, fileName, linkageType, numberOfClusters, indexColumnStart = indexColumnStart, dataSetName = dataSetName)
 ```
 For the mock data set, this yields:
@@ -94,8 +94,8 @@ Bowerbird contains functionality to compare the actual coefficient of determinat
 
 To prepare uniform data sets:
 ```python
-numberOfDataSets            = 20
-numberOfNumerals            = 3
+numberOfDataSets            = 20 # number of data sets to prepare (of the uniform type)
+numberOfNumerals            = 3  # number of numerals used in naming data sets (2 would be enough for 20 data sets, as it allows for names '00' up to '99')
 Bowerbird.AHCPrepareDataSetUniform(directoryData, fileName, numberOfDataSets, indexColumnStart = indexColumnStart, numberOfNumerals = numberOfNumerals)
 ```
 
@@ -123,8 +123,8 @@ Clearly, the parameter vectors of the birds in the mock data set are not drawn f
 To what extent is the clustering result driven by the data of a few (outlier) birds? And have we already entered the sample size regime in which the clustering result has 'converged', or can we expect significant changes in the algorithm's outcome if we were to collect more data?
 To answer these questions, Bowerbird contains jackknife routines. To prepare jackknife data sets, use:
 ```python
-numberOfDataSets            = 50
-numberOfObservationsSubset  = 1000
+numberOfDataSets            = 50   # number of data sets to prepare (of the jackknife type)
+numberOfObservationsSubset  = 1000 # number of observations per data set
 Bowerbird.AHCPrepareDataSetJackknife(directoryData, fileName, numberOfDataSets, numberOfObservationsSubset, indexColumnStart = indexColumnStart, numberOfNumerals = numberOfNumerals)
 ```
 In this example, each jackknife subset contains 1000 birds. The total data set contains 1423 birds. Each jackknife subset thus is a random 70% subset of the total data set.
@@ -134,7 +134,7 @@ dataSetNames                = []
 for indexDataSet in range(numberOfDataSets):
     dataSetNames.append("jackknife" + str(numberOfObservationsSubset) + "_" + str(indexDataSet).zfill(numberOfNumerals))
 
-numberOfClustersStartSaving = 10
+numberOfClustersStartSaving = 10 # to save disk space, we reduce the highest cluster number for which results are stored (if we only want to generate the 5-cluster jackknife result, we could set this to 5)
 for dataSetName in dataSetNames:
     Bowerbird.AHCCompute(directoryData, linkageType, dimensionalWeights, numberOfClustersStartSaving, dataSetName = dataSetName)
     print("Finished clustering on data set '" + dataSetName + "'!")
@@ -154,7 +154,7 @@ Bowerbird contains some additional convenience routines.
 
 After running agglomerative hierarchical clustering and settling on a particular number of clusters, one might want to reorder the clusters found (by simply changing 'labels') to facilitate a particular interpretation (brought forth in e.g. the accompanying research paper). To swap the order of the last two clusters in the 5-cluster result of the full data set, use:
 ```python
-indicesNew                  = [0, 1, 2, 4, 3]
+indicesNew                  = [0, 1, 2, 4, 3] # indices of the current clusters arranged in their future order
 Bowerbird.AHCReorder(directoryData, linkageType, indicesNew, dataSetName = "full")
 ```
 Note that this routine does not automatically change the ordering of related results (such as the 4- or 6-cluster result).
@@ -162,8 +162,8 @@ And make sure to rerun the visualisation routines after reordering to generate u
 
 It can be useful to add each bird's cluster ID to the raw data for other (non-Bowerbird) analyses. This is done with a single line: 
 ```python
-fileNameInput               = fileName
-fileNameOutput              = fileName[ : -4] + "Amended.csv"
+fileNameInput               = fileName                        # name of the CSV file (input)
+fileNameOutput              = fileName[ : -4] + "Amended.csv" # name of the CSV file (output)
 Bowerbird.AHCResultsAmendCSV(directoryData, fileNameInput, fileNameOutput, linkageType, numberOfClusters, dataSetName = "full")
 ```
 <!---
