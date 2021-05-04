@@ -36,12 +36,12 @@ Bowerbird.AHCCompute(directoryData, linkageType, dimensionalWeights, numberOfClu
 To visualise results:
 ```python
 # Fun fact: some bowerbirds are masters of mimicry, emulating the sounds of pigs, humans and... waterfalls.
-directoryFigures            = "./figures/"
-numberOfClustersHighest     = 15
-numberOfClustersLowest      = 2
-dimensionsUsed              = ["body length (cm)", "body mass (g)", "court area (sq. m)", "number of partners\nthis year (1)", "mean\nsong duration (s)", "mean\nsong loudness (dB)", "mimics pigs", "mimics humans", "mimics waterfalls"]
-listGroupNames              = [r"\textbf{body}", r"\textbf{courtship}", r"\textbf{vocals}"]
-listGroupIndices            = [0, 2, 4]
+directoryFigures            = "./figures/" # path used to store figures (doesn't need to exist yet)
+numberOfClustersHighest     = 15           # highest number of clusters to show in progression figures
+numberOfClustersLowest      = 2            # lowest  number of clusters to show in progression figures
+dimensionsUsed              = ["body length (cm)", "body mass (g)", "court area (sq. m)", "number of partners\nthis year (1)", "mean\nsong duration (s)", "mean\nsong loudness (dB)", "mimics pigs", "mimics humans", "mimics waterfalls"] # names of dimensions
+listGroupNames              = [r"\textbf{body}", r"\textbf{courtship}", r"\textbf{vocals}"] # names of groups
+listGroupIndices            = [0, 2, 4]    # indices of each group's first dimension
 Bowerbird.AHCResultsVisualisation(directoryData, directoryFigures, linkageType, numberOfClustersHighest, numberOfClustersLowest, dimensionsUsed, listGroupNames, listGroupIndices, dataSetName = dataSetName)
 ```
 
@@ -68,7 +68,7 @@ The [silhouette](https://en.wikipedia.org/wiki/Silhouette_(clustering) "https://
 
 Often, one normalises the data of each dimension to a common scale (from 0 to 1) before clustering. How does the clustering result look like for the unnormalised data? To answer this question, use:
 ```python
-numberOfClusters            = 5
+numberOfClusters            = 5 # number of clusters to visualise the results for
 Bowerbird.AHCResultsRawData(directoryData, directoryFigures, fileName, linkageType, numberOfClusters, indexColumnStart = indexColumnStart, dataSetName = dataSetName)
 ```
 For the mock data set, this yields:
