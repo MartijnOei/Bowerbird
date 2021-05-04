@@ -124,7 +124,7 @@ To what extent is the clustering result driven by the data of a few (outlier) bi
 To answer these questions, Bowerbird contains jackknife routines. To prepare jackknife data sets, use:
 ```python
 numberOfDataSets            = 50   # number of data sets to prepare (of the jackknife type)
-numberOfObservationsSubset  = 1000 # number of observations per data set
+numberOfObservationsSubset  = 1000 # number of observations to include in each jackknife data set
 Bowerbird.AHCPrepareDataSetJackknife(directoryData, fileName, numberOfDataSets, numberOfObservationsSubset, indexColumnStart = indexColumnStart, numberOfNumerals = numberOfNumerals)
 ```
 In this example, each jackknife subset contains 1000 birds. The total data set contains 1423 birds. Each jackknife subset thus is a random 70% subset of the total data set.
