@@ -2,14 +2,21 @@
 Martijn Simon Soen Liong Oei, April 12021 H.E.
 '''
 
+import copy
+import os
+import time
 
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from matplotlib import cm, colorbar, gridspec
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from scipy import stats
+from scipy.cluster import hierarchy
 
-
-'''
-Martijn Simon Soen Liong Oei, April 12021 H.E.
-'''
-
-import numpy, pandas
+matplotlib.rcParams["text.usetex"] = True
+matplotlib.rcParams["savefig.dpi"] = 400
 
 
 def loadObservationMatrix(filePath, dimensionIndexStart, dimensionIndexEnd, sep = ";"):
@@ -17,11 +24,11 @@ def loadObservationMatrix(filePath, dimensionIndexStart, dimensionIndexEnd, sep 
     Load the observation matrix from a .csv-file at 'filePath',
     including only columns indexed by 'dimensionIndexStart' up to (but not including) 'dimensionIndexEnd'.
 
-    observationMatrix: numpy.ndarray of floats, shape  '(numberOfObservations, numberOfDimensions)'
+    observationMatrix: np.ndarray of floats, shape  '(numberOfObservations, numberOfDimensions)'
     dimensionsUsed:    list of strings,         length 'numberOfDimensions'
     '''
     # Load file.
-    dataFrame            = pandas.read_csv(filePath, sep = sep)
+    dataFrame            = pd.read_csv(filePath, sep = sep)
     numberOfObservations = dataFrame.shape[0] # in 1
 
     # This line is a relic specific to the narcolepsy project:
@@ -37,7 +44,7 @@ def loadObservationMatrix(filePath, dimensionIndexStart, dimensionIndexEnd, sep 
     numberOfDimensions   = len(dimensionsUsed) # in 1
 
     # Fetch data.
-    observationMatrix    = numpy.zeros((numberOfObservations, numberOfDimensions))
+    observationMatrix    = np.zeros((numberOfObservations, numberOfDimensions))
     for i in range(numberOfDimensions):
         observationMatrix[ : , i] = dataFrame.get(dimensionsUsed[i])
 
@@ -50,10 +57,10 @@ def loadAvailabilityMatrix(observationMatrix):
     Load the availability matrix from 'observationMatrix'.
     'True' means available; 'False' means unavailable.
 
-    observationMatrix: numpy.ndarray of floats, shape '(numberOfObservations, numberOfDimensions)'
+    observationMatrix: np.ndarray of floats, shape '(numberOfObservations, numberOfDimensions)'
     '''
 
-    return numpy.logical_not(numpy.isnan(observationMatrix))
+    return np.logical_not(np.isnan(observationMatrix))
 
 
 
@@ -73,14 +80,14 @@ def distancesGower(observationMatrix, hasObservation, dimensionalWeights, cluste
     numberOfObservationsClusterB   = observationsClusterB.shape[0] # in 1
 
     # Generate matrices of shape: '(numberOfObservationsClusterA * numberOfObservationsClusterB, numberOfDimensions)'
-    observationsClusterAExtended   = numpy.repeat(observationsClusterA,   numberOfObservationsClusterB, axis = 0)
-    hasObservationClusterAExtended = numpy.repeat(hasObservationClusterA, numberOfObservationsClusterB, axis = 0)
-    observationsClusterBExtended   = numpy.tile(observationsClusterB,     (numberOfObservationsClusterA, 1))
-    hasObservationClusterBExtended = numpy.tile(hasObservationClusterB,   (numberOfObservationsClusterA, 1))
+    observationsClusterAExtended   = np.repeat(observationsClusterA,   numberOfObservationsClusterB, axis = 0)
+    hasObservationClusterAExtended = np.repeat(hasObservationClusterA, numberOfObservationsClusterB, axis = 0)
+    observationsClusterBExtended   = np.tile(observationsClusterB,     (numberOfObservationsClusterA, 1))
+    hasObservationClusterBExtended = np.tile(hasObservationClusterB,   (numberOfObservationsClusterA, 1))
     hasObservationProduct          = hasObservationClusterAExtended * hasObservationClusterBExtended
 
     # Calculate Gower's distances.
-    distances                      = numpy.matmul(numpy.abs(observationsClusterAExtended - observationsClusterBExtended) * hasObservationProduct, dimensionalWeights) / numpy.matmul(hasObservationProduct, dimensionalWeights) # shape: '(numberOfObservationsClusterA * numberOfObservationsClusterB, )'
+    distances                      = np.matmul(np.abs(observationsClusterAExtended - observationsClusterBExtended) * hasObservationProduct, dimensionalWeights) / np.matmul(hasObservationProduct, dimensionalWeights) # shape: '(numberOfObservationsClusterA * numberOfObservationsClusterB, )'
 
     return distances
 
@@ -98,10 +105,10 @@ def silhouettes(observationMatrix, hasObservation, dimensionalWeights, clusterLi
     numberOfClusters     = len(clusterList)
 
     # Store, for each observation, the value of a, b and the index and size of its cluster.
-    arrayA               = numpy.zeros(numberOfObservations, dtype = numpy.float64)
-    arrayB               = numpy.zeros(numberOfObservations, dtype = numpy.float64)
-    arrayClusterIndex    = numpy.empty(numberOfObservations, dtype = numpy.uint8)
-    arrayClusterSize     = numpy.empty(numberOfObservations, dtype = numpy.uint8)
+    arrayA               = np.zeros(numberOfObservations, dtype = np.float64)
+    arrayB               = np.zeros(numberOfObservations, dtype = np.float64)
+    arrayClusterIndex    = np.empty(numberOfObservations, dtype = np.uint8)
+    arrayClusterSize     = np.empty(numberOfObservations, dtype = np.uint8)
 
 
     # Calculate 'a' for each observation.
@@ -113,9 +120,9 @@ def silhouettes(observationMatrix, hasObservation, dimensionalWeights, clusterLi
 
         if (numberOfObservationsCluster > 1):
             distances       = distancesGower(observationMatrix, hasObservation, dimensionalWeights, cluster, cluster).reshape((numberOfObservationsCluster, numberOfObservationsCluster))
-            numpy.fill_diagonal(distances, numpy.nan)
+            np.fill_diagonal(distances, np.nan)
 
-            arrayA[cluster] = numpy.nanmean(distances, axis = 0)
+            arrayA[cluster] = np.nanmean(distances, axis = 0)
 
 
     # Calculate 'b' for each observation.
@@ -126,7 +133,7 @@ def silhouettes(observationMatrix, hasObservation, dimensionalWeights, clusterLi
         for indexCluster in range(numberOfClusters):
             if (indexCluster != indexClusterOwn):
                 distances    = distancesGower(observationMatrix, hasObservation, dimensionalWeights, [indexObservation], clusterList[indexCluster])
-                distanceMean = numpy.mean(distances)
+                distanceMean = np.mean(distances)
 
                 if (distanceMeanMinimum == None or distanceMean < distanceMeanMinimum):
                     distanceMeanMinimum = distanceMean
@@ -134,7 +141,7 @@ def silhouettes(observationMatrix, hasObservation, dimensionalWeights, clusterLi
         arrayB[indexObservation] = distanceMeanMinimum
 
 
-    arraySilhouettes     = (arrayB - arrayA) / numpy.maximum(arrayA, arrayB) * numpy.greater(arrayClusterSize, 1)
+    arraySilhouettes     = (arrayB - arrayA) / np.maximum(arrayA, arrayB) * np.greater(arrayClusterSize, 1)
     return arraySilhouettes
 
 
@@ -144,10 +151,10 @@ def clusterMean(observationMatrixCluster, hasObservationCluster):
     Missing values in 'observationMatrixCluster' are represented by -1.
     Missing values in the final version of 'observationMatrixClusterMean' are also represented by -1.
     '''
-    hasObservationClusterSum         = numpy.sum(hasObservationCluster, axis = 0)
-    observationMatrixClusterMean     = numpy.sum(observationMatrixCluster * hasObservationCluster, axis = 0) / numpy.maximum(hasObservationClusterSum, 1) # missing: 0
+    hasObservationClusterSum         = np.sum(hasObservationCluster, axis = 0)
+    observationMatrixClusterMean     = np.sum(observationMatrixCluster * hasObservationCluster, axis = 0) / np.maximum(hasObservationClusterSum, 1) # missing: 0
     hasObservationClusterMean        = (hasObservationClusterSum > 0)
-    observationMatrixClusterMean[numpy.logical_not(hasObservationClusterMean)] = -1 # missing: -1
+    observationMatrixClusterMean[np.logical_not(hasObservationClusterMean)] = -1 # missing: -1
 
     return (observationMatrixClusterMean, hasObservationClusterMean)
 
@@ -158,8 +165,8 @@ def distancesToClusterMean(observationMatrixCluster, hasObservationCluster, dime
     '''
     observationMatrixClusterMean, hasObservationClusterMean = clusterMean(observationMatrixCluster, hasObservationCluster)
 
-    observationMatrixClusterAppended = numpy.concatenate((observationMatrixCluster, observationMatrixClusterMean[None, : ]))
-    hasObservationClusterAppended    = numpy.concatenate((hasObservationCluster, hasObservationClusterMean[None, : ]))
+    observationMatrixClusterAppended = np.concatenate((observationMatrixCluster, observationMatrixClusterMean[None, : ]))
+    hasObservationClusterAppended    = np.concatenate((hasObservationCluster, hasObservationClusterMean[None, : ]))
 
     clusterSize                      = observationMatrixCluster.shape[0]
     distances                        = distancesGower(observationMatrixClusterAppended, hasObservationClusterAppended, dimensionalWeights, range(clusterSize), [clusterSize])
@@ -174,9 +181,6 @@ Martijn Simon Soen Liong Oei, April 12021 H.E.
 
 Prepare full data set.
 '''
-
-import numpy, os
-
 def AHCPrepareDataSetFull(directoryData, fileName, indexColumnStart = None, indexColumnEnd = None, dataSetName = "full", normalise = None, normalisePercentile = 2):
     '''
     '''
@@ -188,17 +192,17 @@ def AHCPrepareDataSetFull(directoryData, fileName, indexColumnStart = None, inde
         for indexDimension in range(numberOfDimensions):
             observationsDimension = observationMatrix[ : , indexDimension]
             if (normalise[indexDimension]):
-                clipMin = numpy.percentile(observationsDimension, normalisePercentile)
-                clipMax = numpy.percentile(observationsDimension, 100 - normalisePercentile)
+                clipMin = np.percentile(observationsDimension, normalisePercentile)
+                clipMax = np.percentile(observationsDimension, 100 - normalisePercentile)
 
-                observationMatrix[ : , indexDimension] = (numpy.clip(observationsDimension, clipMin, clipMax) - clipMin) / (clipMax - clipMin)
+                observationMatrix[ : , indexDimension] = (np.clip(observationsDimension, clipMin, clipMax) - clipMin) / (clipMax - clipMin)
 
 
     # Save data set.
     directoryDataSet = directoryData + dataSetName + "/"
     if (not os.path.exists(directoryDataSet)):
         os.makedirs(directoryDataSet)
-    numpy.save(directoryDataSet + "observationMatrix.npy", observationMatrix)
+    np.save(directoryDataSet + "observationMatrix.npy", observationMatrix)
 
 
 
@@ -209,15 +213,12 @@ Martijn Simon Soen Liong Oei, April 12021 H.E.
 This program performs agglomerative hierarchical clustering using Gower's distance.
 The data consists of 'numberOfObservations' vectors of length 'numberOfDimensions', and is allowed to have missing entries.
 '''
-
-import numpy, time
-
 def matrixNew(distanceInterClustersMatrix, numberOfClusters, indexClusterA, indexClusterB):
     '''
     Construct the new version of 'distanceInterClustersMatrix' (except for the last column, which is calculated later).
     '''
 
-    matrixNew = numpy.full((numberOfClusters - 1, numberOfClusters - 1), numpy.inf)
+    matrixNew = np.full((numberOfClusters - 1, numberOfClusters - 1), np.inf)
 
     matrixNew[ : indexClusterA, : indexClusterA]                                                  = distanceInterClustersMatrix[ : indexClusterA, : indexClusterA]
     matrixNew[ : indexClusterA, indexClusterA : indexClusterB - 1]                                = distanceInterClustersMatrix[ : indexClusterA, indexClusterA + 1 : indexClusterB]
@@ -239,10 +240,10 @@ def AHCCompute(directoryData,
     '''
 
     # Load data.
-    observationMatrix                   = numpy.load(directoryData + dataSetName + "/observationMatrix.npy")
+    observationMatrix                   = np.load(directoryData + dataSetName + "/observationMatrix.npy")
     numberOfObservations, numberOfDimensions = observationMatrix.shape
     hasObservation                      = loadAvailabilityMatrix(observationMatrix)
-    observationMatrix[numpy.isnan(observationMatrix)] = -1 # after 'hasObservation' has been created, we set missing entries to -1 to ensure NumPy routines work correctly
+    observationMatrix[np.isnan(observationMatrix)] = -1 # after 'hasObservation' has been created, we set missing entries to -1 to ensure np routines work correctly
 
     print ("Finished loading data!")
     print ("Number of observations:", numberOfObservations)
@@ -257,28 +258,28 @@ def AHCCompute(directoryData,
 
 
     # Initialise the intra-cluster distance list.
-    # Each element is a NumPy array with all distances between the observations of a particular cluster.
+    # Each element is a np array with all distances between the observations of a particular cluster.
     distanceIntraClustersList           = []
     for i in range(numberOfObservations):
-        distanceIntraClustersList.append(numpy.array([]))
+        distanceIntraClustersList.append(np.array([]))
 
 
     # Calculate the inter-cluster distance matrix. Initially, this matrix is the same for all linkage types.
     timeStart                           = time.time()
 
     distanceInterClustersMatrix         = distancesGower(observationMatrix, hasObservation, dimensionalWeights, range(numberOfObservations), range(numberOfObservations)).reshape((numberOfObservations, numberOfObservations))
-    distanceInterClustersMatrix[numpy.tril_indices(numberOfClusters)] = numpy.inf
+    distanceInterClustersMatrix[np.tril_indices(numberOfClusters)] = np.inf
 
-    distanceInterClustersMatrixComplete = numpy.copy(distanceInterClustersMatrix)
-    distanceInterClustersMatrixAverage  = numpy.copy(distanceInterClustersMatrix)
-    distanceInterClustersMatrixSingle   = numpy.copy(distanceInterClustersMatrix)
+    distanceInterClustersMatrixComplete = np.copy(distanceInterClustersMatrix)
+    distanceInterClustersMatrixAverage  = np.copy(distanceInterClustersMatrix)
+    distanceInterClustersMatrixSingle   = np.copy(distanceInterClustersMatrix)
 
     timeEnd                             = time.time()
-    print("Time needed to initialise inter-cluster distance matrix (s):", numpy.round(timeEnd - timeStart, 3))
+    print("Time needed to initialise inter-cluster distance matrix (s):", np.round(timeEnd - timeStart, 3))
 
 
     # Initialise dendrogram information.
-    dendrogramMatrix                    = numpy.empty((numberOfObservations - 1, 4), dtype = numpy.float64)
+    dendrogramMatrix                    = np.empty((numberOfObservations - 1, 4), dtype = np.float64)
     clusterIndicesList                  = list(range(numberOfObservations)) # In Python 3, the 'range'-function doesn't produce a list, but got its own type.
     iterationIndex                      = 0
 
@@ -288,11 +289,11 @@ def AHCCompute(directoryData,
 
         # Find the indices of the clusters that must be merged. By construction, 'indexClusterA' < 'indexClusterB'.
         if   (linkageType == "complete"):
-            indexFlattened = numpy.argmin(distanceInterClustersMatrixComplete)
+            indexFlattened = np.argmin(distanceInterClustersMatrixComplete)
         elif (linkageType == "average"):
-            indexFlattened = numpy.argmin(distanceInterClustersMatrixAverage)
+            indexFlattened = np.argmin(distanceInterClustersMatrixAverage)
         elif (linkageType == "single"):
-            indexFlattened = numpy.argmin(distanceInterClustersMatrixSingle)
+            indexFlattened = np.argmin(distanceInterClustersMatrixSingle)
 
         indexClusterA                       = indexFlattened // numberOfClusters
         indexClusterB                       = indexFlattened % numberOfClusters
@@ -321,9 +322,9 @@ def AHCCompute(directoryData,
             distances                     = distancesGower(observationMatrix, hasObservation, dimensionalWeights, clusterOld, clusterNew)
 
             # Determine the distance between the clusters under the linkage schemes.
-            distanceInterClustersComplete = numpy.amax(distances)
-            distanceInterClustersAverage  = numpy.mean(distances)
-            distanceInterClustersSingle   = numpy.amin(distances)
+            distanceInterClustersComplete = np.amax(distances)
+            distanceInterClustersAverage  = np.mean(distances)
+            distanceInterClustersSingle   = np.amin(distances)
 
             # Fill the right entries with these 3 distances.
             matrixNewComplete[indexClusterOld, indexClusterNew] = distanceInterClustersComplete
@@ -352,7 +353,7 @@ def AHCCompute(directoryData,
 
         # Update the list of intra-cluster distance arrays.
         # First, find the array with all distances within the new cluster.
-        distanceIntraClusterNew             = numpy.concatenate((distanceIntraClustersList[indexClusterA], distanceIntraClustersList[indexClusterB], distancesGower(observationMatrix, hasObservation, dimensionalWeights, clusterA, clusterB)))
+        distanceIntraClusterNew             = np.concatenate((distanceIntraClustersList[indexClusterA], distanceIntraClustersList[indexClusterB], distancesGower(observationMatrix, hasObservation, dimensionalWeights, clusterA, clusterB)))
         # Then update 'distanceIntraClustersList'.
         distanceIntraClustersList.pop(indexClusterB)
         distanceIntraClustersList.pop(indexClusterA)
@@ -362,25 +363,25 @@ def AHCCompute(directoryData,
         # Calculate the metrics, if we save results for this number of clusters.
         if (numberOfClusters <= numberOfClustersStartSaving):
             # Calculate mean inter-cluster distances.
-            indices                           = numpy.triu_indices(numberOfClusters, 1)
-            distanceInterClustersMeanComplete = numpy.mean(distanceInterClustersMatrixComplete[indices])
-            distanceInterClustersMeanAverage  = numpy.mean(distanceInterClustersMatrixAverage [indices])
-            distanceInterClustersMeanSingle   = numpy.mean(distanceInterClustersMatrixSingle  [indices])
+            indices                           = np.triu_indices(numberOfClusters, 1)
+            distanceInterClustersMeanComplete = np.mean(distanceInterClustersMatrixComplete[indices])
+            distanceInterClustersMeanAverage  = np.mean(distanceInterClustersMatrixAverage [indices])
+            distanceInterClustersMeanSingle   = np.mean(distanceInterClustersMatrixSingle  [indices])
 
             # Calculate mean intra-cluster distance.
-            distanceIntraClustersMean         = numpy.mean(numpy.concatenate(distanceIntraClustersList))
+            distanceIntraClustersMean         = np.mean(np.concatenate(distanceIntraClustersList))
 
             # Calculate silhouettes.
             silhouettesAll                    = silhouettes(observationMatrix, hasObservation, dimensionalWeights, clusterList)
-            silhouettesMean                   = numpy.mean(silhouettesAll)
-            silhouettesSD                     = numpy.std(silhouettesAll)
+            silhouettesMean                   = np.mean(silhouettesAll)
+            silhouettesSD                     = np.std(silhouettesAll)
 
             # Calculate Dunn's indices.
-            # Because we take the minimum, the occurrence of 'numpy.inf' in the array does not matter, and we do not have to slice the arrays first.
-            distanceInterClustersMinComplete  = numpy.amin(distanceInterClustersMatrixComplete)
-            distanceInterClustersMinAverage   = numpy.amin(distanceInterClustersMatrixAverage)
-            distanceInterClustersMinSingle    = numpy.amin(distanceInterClustersMatrixSingle)
-            diameterMaximum                   = numpy.amax(numpy.concatenate(distanceIntraClustersList))
+            # Because we take the minimum, the occurrence of 'np.inf' in the array does not matter, and we do not have to slice the arrays first.
+            distanceInterClustersMinComplete  = np.amin(distanceInterClustersMatrixComplete)
+            distanceInterClustersMinAverage   = np.amin(distanceInterClustersMatrixAverage)
+            distanceInterClustersMinSingle    = np.amin(distanceInterClustersMatrixSingle)
+            diameterMaximum                   = np.amax(np.concatenate(distanceIntraClustersList))
             indexDunnComplete                 = distanceInterClustersMinComplete / diameterMaximum
             indexDunnAverage                  = distanceInterClustersMinAverage  / diameterMaximum
             indexDunnSingle                   = distanceInterClustersMinSingle   / diameterMaximum
@@ -389,26 +390,26 @@ def AHCCompute(directoryData,
             varianceModelCurrent              = 0
             for i in range(numberOfClusters):
                 distances             = distancesToClusterMean(observationMatrix[clusterList[i]], hasObservation[clusterList[i]], dimensionalWeights)
-                varianceModelCurrent += numpy.sum(numpy.square(distances))
+                varianceModelCurrent += np.sum(np.square(distances))
 
             distances                         = distancesToClusterMean(observationMatrix, hasObservation, dimensionalWeights)
-            varianceModelTrivial              = numpy.sum(numpy.square(distances))
+            varianceModelTrivial              = np.sum(np.square(distances))
             coefficientOfDetermination        = 1 - varianceModelCurrent / varianceModelTrivial
 
 
             # Combine all single-number metrics in one array.
-            metricsSingleNumber               = numpy.array([distanceInterClustersMeanComplete, distanceInterClustersMeanAverage, distanceInterClustersMeanSingle, distanceIntraClustersMean, silhouettesMean, silhouettesSD, distanceInterClustersMinComplete, distanceInterClustersMinAverage, distanceInterClustersMinSingle, diameterMaximum, indexDunnComplete, indexDunnAverage, indexDunnSingle, coefficientOfDetermination])
+            metricsSingleNumber               = np.array([distanceInterClustersMeanComplete, distanceInterClustersMeanAverage, distanceInterClustersMeanSingle, distanceIntraClustersMean, silhouettesMean, silhouettesSD, distanceInterClustersMinComplete, distanceInterClustersMinAverage, distanceInterClustersMinSingle, diameterMaximum, indexDunnComplete, indexDunnAverage, indexDunnSingle, coefficientOfDetermination])
 
 
             # Save results.
             linkageTypeCapitalised            = linkageType.capitalize()
-            numpy.save(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "ClusterList"                         + ".npy", clusterList)
-            numpy.save(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "DistanceInterClustersMatrixComplete" + ".npy", distanceInterClustersMatrixComplete)
-            numpy.save(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "DistanceInterClustersMatrixAverage"  + ".npy", distanceInterClustersMatrixAverage)
-            numpy.save(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "DistanceInterClustersMatrixSingle"   + ".npy", distanceInterClustersMatrixSingle)
-            numpy.save(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "DistanceIntraClustersList"           + ".npy", distanceIntraClustersList)
-            numpy.save(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "SilhouettesAll"                      + ".npy", silhouettesAll)
-            numpy.save(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "MetricsSingleNumber"                 + ".npy", metricsSingleNumber)
+            np.save(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "ClusterList"                         + ".npy", clusterList)
+            np.save(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "DistanceInterClustersMatrixComplete" + ".npy", distanceInterClustersMatrixComplete)
+            np.save(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "DistanceInterClustersMatrixAverage"  + ".npy", distanceInterClustersMatrixAverage)
+            np.save(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "DistanceInterClustersMatrixSingle"   + ".npy", distanceInterClustersMatrixSingle)
+            np.save(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "DistanceIntraClustersList"           + ".npy", distanceIntraClustersList)
+            np.save(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "SilhouettesAll"                      + ".npy", silhouettesAll)
+            np.save(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "MetricsSingleNumber"                 + ".npy", metricsSingleNumber)
 
         print ("Finished iteration. Number of clusters left (1):", numberOfClusters)
 
@@ -417,7 +418,7 @@ def AHCCompute(directoryData,
     dendrogramMatrix[numberOfObservations - 2, 1] = clusterIndicesList[1]
     dendrogramMatrix[numberOfObservations - 2, 2] = 1
     dendrogramMatrix[numberOfObservations - 2, 3] = numberOfObservations
-    numpy.save(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + "DendrogramMatrix.npy", dendrogramMatrix)
+    np.save(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + "DendrogramMatrix.npy", dendrogramMatrix)
 
 
 
@@ -428,16 +429,6 @@ Martijn Simon Soen Liong Oei, April 12021 H.E.
 This program visualises the agglomerative hierarchical clustering results generated by 'AHCCompute'.
 Amongst other things, it plots the evolution of outcome metrics through the iterations. Use this to determine a number of clusters to stop clustering at.
 '''
-
-from matplotlib import cm, colorbar, gridspec, pyplot
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from scipy.cluster import hierarchy
-import copy, numpy, os
-import matplotlib
-matplotlib.rcParams["text.usetex"] = True
-matplotlib.rcParams["savefig.dpi"] = 400
-
-
 def AHCResultsVisualisation(directoryData,                                          # path to the main data    directory
                             directoryFigures,                                       # path to the main figures directory
                             linkageType,                                            # determines the results to show
@@ -508,32 +499,32 @@ def AHCResultsVisualisation(directoryData,                                      
     colourMapClusters.set_bad(color = "white")
 
     # Load 'observationMatrix'.
-    observationMatrix                   = numpy.load(directoryData + dataSetName + "/observationMatrix.npy")
+    observationMatrix                   = np.load(directoryData + dataSetName + "/observationMatrix.npy")
     numberOfObservations, numberOfDimensions = observationMatrix.shape
-    observationNames                    = numpy.arange(numberOfObservations)
+    observationNames                    = np.arange(numberOfObservations)
 
     # Load data.
     linkageTypeCapitalised              = linkageType.capitalize()
-    clusterList                         = numpy.load(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "ClusterList"    + ".npy", allow_pickle = True)
-    silhouettesAll                      = numpy.load(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "SilhouettesAll" + ".npy")
-    distanceInterClustersMatrixComplete = numpy.load(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "DistanceInterClustersMatrixComplete" + ".npy")
-    distanceInterClustersMatrixAverage  = numpy.load(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "DistanceInterClustersMatrixAverage" + ".npy")
-    distanceInterClustersMatrixSingle   = numpy.load(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "DistanceInterClustersMatrixSingle" + ".npy")
+    clusterList                         = np.load(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "ClusterList"    + ".npy", allow_pickle = True)
+    silhouettesAll                      = np.load(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "SilhouettesAll" + ".npy")
+    distanceInterClustersMatrixComplete = np.load(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "DistanceInterClustersMatrixComplete" + ".npy")
+    distanceInterClustersMatrixAverage  = np.load(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "DistanceInterClustersMatrixAverage" + ".npy")
+    distanceInterClustersMatrixSingle   = np.load(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "DistanceInterClustersMatrixSingle" + ".npy")
 
     numberOfData                        = numberOfClustersHighest - numberOfClustersLowest + 1 # in 1
-    distanceInterClustersMeansComplete  = numpy.empty(numberOfData)
-    distanceInterClustersMeansAverage   = numpy.empty(numberOfData)
-    distanceInterClustersMeansSingle    = numpy.empty(numberOfData)
-    distanceIntraClustersMeans          = numpy.empty(numberOfData)
-    silhouetteMeans                     = numpy.empty(numberOfData)
-    silhouetteSDs                       = numpy.empty(numberOfData)
-    indicesDunnComplete                 = numpy.empty(numberOfData)
-    indicesDunnAverage                  = numpy.empty(numberOfData)
-    indicesDunnSingle                   = numpy.empty(numberOfData)
-    coefficientsOfDetermination         = numpy.empty(numberOfData) # in 1
+    distanceInterClustersMeansComplete  = np.empty(numberOfData)
+    distanceInterClustersMeansAverage   = np.empty(numberOfData)
+    distanceInterClustersMeansSingle    = np.empty(numberOfData)
+    distanceIntraClustersMeans          = np.empty(numberOfData)
+    silhouetteMeans                     = np.empty(numberOfData)
+    silhouetteSDs                       = np.empty(numberOfData)
+    indicesDunnComplete                 = np.empty(numberOfData)
+    indicesDunnAverage                  = np.empty(numberOfData)
+    indicesDunnSingle                   = np.empty(numberOfData)
+    coefficientsOfDetermination         = np.empty(numberOfData) # in 1
 
     for numberOfClusters, i in zip(range(numberOfClustersLowest, numberOfClustersHighest + 1)[::-1], range(numberOfData)):
-        metricsSingleNumber                   = numpy.load(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "MetricsSingleNumber" + ".npy")
+        metricsSingleNumber                   = np.load(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "MetricsSingleNumber" + ".npy")
         distanceInterClustersMeansComplete[i] = metricsSingleNumber[0]
         distanceInterClustersMeansAverage [i] = metricsSingleNumber[1]
         distanceInterClustersMeansSingle  [i] = metricsSingleNumber[2]
@@ -545,7 +536,7 @@ def AHCResultsVisualisation(directoryData,                                      
         indicesDunnSingle                 [i] = metricsSingleNumber[12]
         coefficientsOfDetermination       [i] = metricsSingleNumber[13]
 
-    rangeClusterNumberMetrics           = numpy.arange(numberOfClustersLowest, numberOfClustersHighest + 1)[ : : -1]
+    rangeClusterNumberMetrics           = np.arange(numberOfClustersLowest, numberOfClustersHighest + 1)[ : : -1]
 
 
     if (plotClusters or plotClusterMeans):
@@ -559,9 +550,9 @@ def AHCResultsVisualisation(directoryData,                                      
             clusterSize               = len(clusterObservationIndices)
             clusterObservationNames   = observationNames[clusterObservationIndices]
             clusterMatrix             = observationMatrix[clusterObservationIndices]
-            clusterMatrixPlot         = clusterMatrix.astype(numpy.float64)
-            clusterMatrixPlot[(clusterMatrix == -1)] = numpy.nan
-            clusterMeans              = numpy.nanmean(clusterMatrixPlot, axis = 0)
+            clusterMatrixPlot         = clusterMatrix.astype(np.float64)
+            clusterMatrixPlot[(clusterMatrix == -1)] = np.nan
+            clusterMeans              = np.nanmean(clusterMatrixPlot, axis = 0)
 
             # Save quantities that can be used in plots later.
             clusterSizeList.append(clusterSize)
@@ -577,36 +568,36 @@ def AHCResultsVisualisation(directoryData,                                      
 
 
     if (plotCoefficientsOfDetermination):
-        pyplot.figure(figsize = (figureWidthCoefficientsOfDetermination, figureHeightCoefficientsOfDetermination))
-        pyplot.scatter(rangeClusterNumberMetrics, coefficientsOfDetermination * 100, s = 6, c = "crimson")
-        pyplot.plot(rangeClusterNumberMetrics, coefficientsOfDetermination * 100, ls = "--", c = "crimson", alpha = .5)
-        pyplot.gca().invert_xaxis()
-        pyplot.grid(ls = "--", alpha = .2)
-        pyplot.xticks(rangeClusterNumberMetrics)
-        pyplot.xlim(rangeClusterNumberMetrics[0] + .1, rangeClusterNumberMetrics[-1] - .1)
-        #pyplot.xlim(rangeClusterNumberMetrics[0], rangeClusterNumberMetrics[-1])
-        pyplot.xlabel("number of clusters (1)")
-        pyplot.ylabel(r"fraction of explained variance (\%)")
-        pyplot.title(r"goodness of fit: coefficient of determination $R^2$ $\vert$ " + r"\textbf{" + linkageType + r"}" + " linkage")
-        pyplot.tight_layout()
-        pyplot.savefig(directoryFigures + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "CoefficientsOfDetermination" + figureExtension)
-        pyplot.close()
+        plt.figure(figsize = (figureWidthCoefficientsOfDetermination, figureHeightCoefficientsOfDetermination))
+        plt.scatter(rangeClusterNumberMetrics, coefficientsOfDetermination * 100, s = 6, c = "crimson")
+        plt.plot(rangeClusterNumberMetrics, coefficientsOfDetermination * 100, ls = "--", c = "crimson", alpha = .5)
+        plt.gca().invert_xaxis()
+        plt.grid(ls = "--", alpha = .2)
+        plt.xticks(rangeClusterNumberMetrics)
+        plt.xlim(rangeClusterNumberMetrics[0] + .1, rangeClusterNumberMetrics[-1] - .1)
+        #plt.xlim(rangeClusterNumberMetrics[0], rangeClusterNumberMetrics[-1])
+        plt.xlabel("number of clusters (1)")
+        plt.ylabel(r"fraction of explained variance (\%)")
+        plt.title(r"goodness of fit: coefficient of determination $R^2$ $\vert$ " + r"\textbf{" + linkageType + r"}" + " linkage")
+        plt.tight_layout()
+        plt.savefig(directoryFigures + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "CoefficientsOfDetermination" + figureExtension)
+        plt.close()
 
 
 
     if (plotSilhouettesAll):
 
-        pyplot.figure(figsize = (figureWidthSilhouettesAll, figureHeightSilhouettesAll))
+        plt.figure(figsize = (figureWidthSilhouettesAll, figureHeightSilhouettesAll))
         for indexCluster in range(numberOfClustersLowest):
             clusterObservationIndices = clusterList[indexCluster]
             clusterSize               = len(clusterObservationIndices)
-            clusterSilhouettesSorted  = numpy.sort(silhouettesAll[clusterObservationIndices])
-            clusterSilhouetteMean     = numpy.mean(clusterSilhouettesSorted)
-            clusterSilhouetteSD       = numpy.std( clusterSilhouettesSorted)
+            clusterSilhouettesSorted  = np.sort(silhouettesAll[clusterObservationIndices])
+            clusterSilhouetteMean     = np.mean(clusterSilhouettesSorted)
+            clusterSilhouetteSD       = np.std( clusterSilhouettesSorted)
 
-            axesCluster               = pyplot.subplot2grid((1, numberOfClustersLowest), (0, indexCluster), rowspan = 1, colspan = 1)
+            axesCluster               = plt.subplot2grid((1, numberOfClustersLowest), (0, indexCluster), rowspan = 1, colspan = 1)
 
-            axesCluster.bar(range(clusterSize), clusterSilhouettesSorted, width = 1, color = colourMapSilhouettesAll(numpy.clip((clusterSilhouettesSorted - silhouetteColourMin) / (silhouetteColourMax - silhouetteColourMin), 0, 1)), label = "mean: " + str(numpy.round(clusterSilhouetteMean, 2)) + "\nSD:\ \ \ \ " + str(numpy.round(clusterSilhouetteSD, 2)))
+            axesCluster.bar(range(clusterSize), clusterSilhouettesSorted, width = 1, color = colourMapSilhouettesAll(np.clip((clusterSilhouettesSorted - silhouetteColourMin) / (silhouetteColourMax - silhouetteColourMin), 0, 1)), label = "mean: " + str(np.round(clusterSilhouetteMean, 2)) + "\nSD:\ \ \ \ " + str(np.round(clusterSilhouetteSD, 2)))
             axesCluster.set_xlim(-0.5, clusterSize - 0.5)
             axesCluster.set_ylim(-radius, radius)
             axesCluster.set_xticks([])
@@ -621,84 +612,84 @@ def AHCResultsVisualisation(directoryData,                                      
                 #for tick in axesCluster.yaxis.get_major_ticks():
                 #    tick.tick1On = False
                 #    tick.tick2On = False
-                #pyplot.setp(axesCluster.get_yticks(), visible = False)
+                #plt.setp(axesCluster.get_yticks(), visible = False)
                 axesCluster.yaxis.set_tick_params(length = 0)#label1On = False, label2On = False,
                 axesCluster.set_yticklabels([])
 
-            axesCluster.set_title("cluster " + str(indexCluster + 1), fontsize = "large")# + "\nmean: " + str(numpy.round(clusterSilhouetteMean, 2)), fontsize = "large")
-            #axesCluster.set_title("cluster " + str(indexCluster + 1) + "\n" + "$\mu = " + str(numpy.round(clusterSilhouetteMean, 2)) + "$", fontsize = "large")
-            #axesCluster.set_title(r"\textbf{" + str(indexCluster + 1) + r"}:" + "\n" + r"$N = " + str(clusterSize) + r"$ $\vert$ $\mu = " + str(numpy.round(clusterSilhouetteMean, 2)) + "$")
+            axesCluster.set_title("cluster " + str(indexCluster + 1), fontsize = "large")# + "\nmean: " + str(np.round(clusterSilhouetteMean, 2)), fontsize = "large")
+            #axesCluster.set_title("cluster " + str(indexCluster + 1) + "\n" + "$\mu = " + str(np.round(clusterSilhouetteMean, 2)) + "$", fontsize = "large")
+            #axesCluster.set_title(r"\textbf{" + str(indexCluster + 1) + r"}:" + "\n" + r"$N = " + str(clusterSize) + r"$ $\vert$ $\mu = " + str(np.round(clusterSilhouetteMean, 2)) + "$")
             axesCluster.legend(loc = "lower right")
-        #pyplot.suptitle(r"\textbf{all clusters}: $N = " + str(numberOfObservations) + r"$ $\vert$ $\mu = " + str(numpy.round(numpy.mean(silhouettesAll), 2)) + "$")
-        #pyplot.subplots_adjust(left = 0.07, right = .99, bottom = .01, top = .85, wspace = 0)
-        #pyplot.yticks(fontsize = "large")
-        pyplot.subplots_adjust(left = .08, right = .99, bottom = .02, top = .9, wspace = .02)
-        #pyplot.tight_layout()
-        pyplot.savefig(directoryFigures + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "SilhouettesAll" + figureExtension)
-        pyplot.close()
+        #plt.suptitle(r"\textbf{all clusters}: $N = " + str(numberOfObservations) + r"$ $\vert$ $\mu = " + str(np.round(np.mean(silhouettesAll), 2)) + "$")
+        #plt.subplots_adjust(left = 0.07, right = .99, bottom = .01, top = .85, wspace = 0)
+        #plt.yticks(fontsize = "large")
+        plt.subplots_adjust(left = .08, right = .99, bottom = .02, top = .9, wspace = .02)
+        #plt.tight_layout()
+        plt.savefig(directoryFigures + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "SilhouettesAll" + figureExtension)
+        plt.close()
 
 
 
     if (plotSilhouettesSummary):
-        pyplot.figure(figsize = (figureWidthSilhouettesSummary, figureHeightSilhouettesSummary))
-        pyplot.scatter(rangeClusterNumberMetrics, silhouetteMeans, s = 6, label = r"mean", c = "crimson", zorder = 2)#$\mu$
-        pyplot.plot(   rangeClusterNumberMetrics, silhouetteMeans, ls = "--", alpha = .5, c = "crimson", zorder = 2)
-        pyplot.axhline(y = 0, c = "gray", alpha = .5, zorder = 1)
+        plt.figure(figsize = (figureWidthSilhouettesSummary, figureHeightSilhouettesSummary))
+        plt.scatter(rangeClusterNumberMetrics, silhouetteMeans, s = 6, label = r"mean", c = "crimson", zorder = 2)#$\mu$
+        plt.plot(   rangeClusterNumberMetrics, silhouetteMeans, ls = "--", alpha = .5, c = "crimson", zorder = 2)
+        plt.axhline(y = 0, c = "gray", alpha = .5, zorder = 1)
 
-        #pyplot.fill_between(rangeClusterNumberMetrics, silhouetteMeans - 2 * silhouetteSDs, silhouetteMeans + 2 * silhouetteSDs, alpha = .2, color = "orangered", lw = 0)
-        pyplot.fill_between(rangeClusterNumberMetrics, silhouetteMeans - 1 * silhouetteSDs, silhouetteMeans + 1 * silhouetteSDs, alpha = .2, color = "crimson", lw = 0, label = r"$\pm1$ SD interval", zorder = 2)#\sigma
+        #plt.fill_between(rangeClusterNumberMetrics, silhouetteMeans - 2 * silhouetteSDs, silhouetteMeans + 2 * silhouetteSDs, alpha = .2, color = "orangered", lw = 0)
+        plt.fill_between(rangeClusterNumberMetrics, silhouetteMeans - 1 * silhouetteSDs, silhouetteMeans + 1 * silhouetteSDs, alpha = .2, color = "crimson", lw = 0, label = r"$\pm1$ SD interval", zorder = 2)#\sigma
 
-        pyplot.grid(ls = "--", alpha = .25)
-        pyplot.gca().invert_xaxis()
+        plt.grid(ls = "--", alpha = .25)
+        plt.gca().invert_xaxis()
 
-        pyplot.xticks(rangeClusterNumberMetrics)
-        pyplot.xlim(numberOfClustersHighest, numberOfClustersLowest)
-        #pyplot.xlim(numberOfClustersHighest + 0.1, numberOfClustersLowest - 0.1)
-        #pyplot.ylim(-1, 1)
+        plt.xticks(rangeClusterNumberMetrics)
+        plt.xlim(numberOfClustersHighest, numberOfClustersLowest)
+        #plt.xlim(numberOfClustersHighest + 0.1, numberOfClustersLowest - 0.1)
+        #plt.ylim(-1, 1)
 
-        pyplot.xlabel("number of clusters (1)")
-        pyplot.ylabel("silhouette (1)")
-        pyplot.legend(loc = "upper left")
-        pyplot.title(r"silhouette summary statistics $\vert$ " + r"\textbf{" + linkageType + r"}" + " linkage") #during agglomerative hierarchical clustering (mean with $\pm$1 standard deviation interval)
-        #pyplot.subplots_adjust(left = 0.07, right = 0.98, bottom = 0.08, top = 0.92)
-        pyplot.tight_layout()
-        pyplot.savefig(directoryFigures + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "ProgressionSilhouettes" + figureExtension)
-        pyplot.close()
+        plt.xlabel("number of clusters (1)")
+        plt.ylabel("silhouette (1)")
+        plt.legend(loc = "upper left")
+        plt.title(r"silhouette summary statistics $\vert$ " + r"\textbf{" + linkageType + r"}" + " linkage") #during agglomerative hierarchical clustering (mean with $\pm$1 standard deviation interval)
+        #plt.subplots_adjust(left = 0.07, right = 0.98, bottom = 0.08, top = 0.92)
+        plt.tight_layout()
+        plt.savefig(directoryFigures + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "ProgressionSilhouettes" + figureExtension)
+        plt.close()
 
 
 
     if (plotIndicesDunn):
-        pyplot.figure(figsize = (figureWidthIndicesDunn, figureHeightIndicesDunn))
-        pyplot.scatter(rangeClusterNumberMetrics, indicesDunnComplete / indicesDunnComplete[0], label = "complete", s = 4, c = "crimson")
-        pyplot.plot(   rangeClusterNumberMetrics, indicesDunnComplete / indicesDunnComplete[0], ls = "--", alpha = .5,     c = "crimson")
-        pyplot.scatter(rangeClusterNumberMetrics, indicesDunnAverage  / indicesDunnAverage[0],  label = "average",  s = 4, c = "yellowgreen")
-        pyplot.plot(   rangeClusterNumberMetrics, indicesDunnAverage  / indicesDunnAverage[0],  ls = "--", alpha = .5,     c = "yellowgreen")
-        pyplot.scatter(rangeClusterNumberMetrics, indicesDunnSingle   / indicesDunnSingle[0],   label = "single",   s = 4, c = "navy")
-        pyplot.plot(   rangeClusterNumberMetrics, indicesDunnSingle   / indicesDunnSingle[0],   ls = "--", alpha = .5,     c = "navy")
+        plt.figure(figsize = (figureWidthIndicesDunn, figureHeightIndicesDunn))
+        plt.scatter(rangeClusterNumberMetrics, indicesDunnComplete / indicesDunnComplete[0], label = "complete", s = 4, c = "crimson")
+        plt.plot(   rangeClusterNumberMetrics, indicesDunnComplete / indicesDunnComplete[0], ls = "--", alpha = .5,     c = "crimson")
+        plt.scatter(rangeClusterNumberMetrics, indicesDunnAverage  / indicesDunnAverage[0],  label = "average",  s = 4, c = "yellowgreen")
+        plt.plot(   rangeClusterNumberMetrics, indicesDunnAverage  / indicesDunnAverage[0],  ls = "--", alpha = .5,     c = "yellowgreen")
+        plt.scatter(rangeClusterNumberMetrics, indicesDunnSingle   / indicesDunnSingle[0],   label = "single",   s = 4, c = "navy")
+        plt.plot(   rangeClusterNumberMetrics, indicesDunnSingle   / indicesDunnSingle[0],   ls = "--", alpha = .5,     c = "navy")
 
-        pyplot.grid(ls = "--", alpha = .25)
-        pyplot.gca().invert_xaxis()
-        pyplot.xticks(rangeClusterNumberMetrics)
-        pyplot.xlim(numberOfClustersHighest + 0.1, numberOfClustersLowest - 0.1)
+        plt.grid(ls = "--", alpha = .25)
+        plt.gca().invert_xaxis()
+        plt.xticks(rangeClusterNumberMetrics)
+        plt.xlim(numberOfClustersHighest + 0.1, numberOfClustersLowest - 0.1)
 
-        pyplot.xlabel("number of clusters (1)")
-        pyplot.ylabel("relative Dunn's index (1)")
+        plt.xlabel("number of clusters (1)")
+        plt.ylabel("relative Dunn's index (1)")
 
-        pyplot.legend(loc = "upper left")
+        plt.legend(loc = "upper left")
 
-        pyplot.title(r"Dunn's indices $\vert$ " + r"\textbf{" + linkageType + r"}" + " linkage") #during agglomerative hierarchical clustering
-        #pyplot.subplots_adjust(left = 0.07, right = 0.98, bottom = 0.08, top = 0.92)
-        pyplot.tight_layout()
-        pyplot.savefig(directoryFigures + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "ProgressionDunnsIndices" + figureExtension)
-        pyplot.close()
+        plt.title(r"Dunn's indices $\vert$ " + r"\textbf{" + linkageType + r"}" + " linkage") #during agglomerative hierarchical clustering
+        #plt.subplots_adjust(left = 0.07, right = 0.98, bottom = 0.08, top = 0.92)
+        plt.tight_layout()
+        plt.savefig(directoryFigures + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "ProgressionDunnsIndices" + figureExtension)
+        plt.close()
 
 
 
     if (plotDistanceMeans):
-        pyplot.figure(figsize = (figureWidthDistanceMeans, figureHeightDistanceMeans))
+        plt.figure(figsize = (figureWidthDistanceMeans, figureHeightDistanceMeans))
         gridspec.GridSpec(10, 1)
-        axesMeans          = pyplot.subplot2grid((10, 1), (0, 0), rowspan = 7, colspan = 1)
-        axesRatio          = pyplot.subplot2grid((10, 1), (7, 0), rowspan = 3, colspan = 1)
+        axesMeans          = plt.subplot2grid((10, 1), (0, 0), rowspan = 7, colspan = 1)
+        axesRatio          = plt.subplot2grid((10, 1), (7, 0), rowspan = 3, colspan = 1)
 
         ratioComplete      = distanceInterClustersMeansComplete / distanceIntraClustersMeans
         ratioAverage       = distanceInterClustersMeansAverage  / distanceIntraClustersMeans
@@ -739,46 +730,46 @@ def AHCResultsVisualisation(directoryData,                                      
         axesMeans.grid(ls = "--", alpha = .2)
         axesRatio.grid(ls = "--", alpha = .2)
 
-        #pyplot.subplots_adjust(left = 0.07, right = 0.98, bottom = 0.08, top = 0.92)
-        pyplot.tight_layout()
-        pyplot.savefig(directoryFigures + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "ProgressionMeanDistances" + figureExtension)
-        pyplot.close()
+        #plt.subplots_adjust(left = 0.07, right = 0.98, bottom = 0.08, top = 0.92)
+        plt.tight_layout()
+        plt.savefig(directoryFigures + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "ProgressionMeanDistances" + figureExtension)
+        plt.close()
 
 
 
     # Plot the clusters that the algorithm has found.
     if (plotClusters):
         for i in range(numberOfClustersLowest):
-            figure           = pyplot.figure(1)
+            figure           = plt.figure(1)
 
             figureWidth      = 4 + numberOfDimensions * .25 # in inch
             figureHeight     = 2 + clusterSizeList[i] * .1  # in inch
 
-            numberOfRows     = int(numpy.round(figureHeight / figureHeightClustersBarCode))  # in 1
-            numberOfColumns  = int(numpy.round(figureWidth  / figureWidthClustersColourBar)) # in 1
+            numberOfRows     = int(np.round(figureHeight / figureHeightClustersBarCode))  # in 1
+            numberOfColumns  = int(np.round(figureWidth  / figureWidthClustersColourBar)) # in 1
             print(numberOfRows, numberOfColumns)
 
 
             gridspec.GridSpec(numberOfRows, numberOfColumns)
-            axesClusterWhole = pyplot.subplot2grid((numberOfRows, numberOfColumns), (0, 0), rowspan = numberOfRows - 1, colspan = numberOfColumns - 1)
-            axesClusterMean  = pyplot.subplot2grid((numberOfRows, numberOfColumns), (numberOfRows - 1, 0), colspan = numberOfColumns - 1)
-            axesColourBar    = pyplot.subplot2grid((numberOfRows, numberOfColumns), (0, numberOfColumns - 1), rowspan = numberOfRows - 1)
+            axesClusterWhole = plt.subplot2grid((numberOfRows, numberOfColumns), (0, 0), rowspan = numberOfRows - 1, colspan = numberOfColumns - 1)
+            axesClusterMean  = plt.subplot2grid((numberOfRows, numberOfColumns), (numberOfRows - 1, 0), colspan = numberOfColumns - 1)
+            axesColourBar    = plt.subplot2grid((numberOfRows, numberOfColumns), (0, numberOfColumns - 1), rowspan = numberOfRows - 1)
 
             axesClusterWhole.imshow(clusterMatrixPlotList[i], cmap = colourMapClusters, aspect = "auto", vmin = 0, vmax = 1, interpolation = "nearest")
-            axesClusterMean.imshow(numpy.reshape(clusterMeansList[i], (1, numberOfDimensions)), cmap = colourMapClusters, aspect = "auto", vmin = 0, vmax = 1, interpolation = "nearest")
+            axesClusterMean.imshow(np.reshape(clusterMeansList[i], (1, numberOfDimensions)), cmap = colourMapClusters, aspect = "auto", vmin = 0, vmax = 1, interpolation = "nearest")
 
             colourBar        = colorbar.ColorbarBase(axesColourBar, cmap = colourMapClusters, orientation = "vertical")
 
-            axesClusterWhole.set_xticks(numpy.arange(numberOfDimensions))
+            axesClusterWhole.set_xticks(np.arange(numberOfDimensions))
             axesClusterWhole.set_xticklabels([])
-            axesClusterWhole.set_yticks(numpy.arange(clusterSizeList[i]))
+            axesClusterWhole.set_yticks(np.arange(clusterSizeList[i]))
 
             #if (clusterSizeList[i] > 100): # For dense clusters, observation labels are best omitted.
             #    axesClusterWhole.set_yticklabels([""] * clusterSizeList[i])
             #else: # For sparse clusters, observation labels are best included.
             axesClusterWhole.set_yticklabels(clusterObservationNamesList[i], fontsize = "xx-small")
 
-            axesClusterMean.set_xticks(numpy.arange(numberOfDimensions))
+            axesClusterMean.set_xticks(np.arange(numberOfDimensions))
             axesClusterMean.set_xticklabels(dimensionsUsed, rotation = 90)
             axesClusterMean.set_yticks([0])
             axesClusterMean.set_yticklabels(["cluster\nmean"])
@@ -790,10 +781,10 @@ def AHCResultsVisualisation(directoryData,                                      
             axesClusterWhole.set_title("cluster " + str(i + 1) + " of " + str(numberOfClustersLowest) + r" $\vert$ " + str(clusterSizeList[i]) + r" observations $\vert$ $\textbf{" + linkageType + r"}$ linkage")
 
             figure.set_size_inches(w = figureWidth, h = figureHeight)
-            pyplot.tight_layout()
-            #pyplot.subplots_adjust(left = 0.25, right = 0.97, bottom = 0.05, top = 0.93, hspace = 0.1)
+            plt.tight_layout()
+            #plt.subplots_adjust(left = 0.25, right = 0.97, bottom = 0.05, top = 0.93, hspace = 0.1)
             figure.savefig(directoryFigures + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "Cluster" + str(i + 1) + figureExtension)
-            pyplot.close()
+            plt.close()
 
 
             print ("Cluster " + str(i + 1) + " of " + str(numberOfClustersLowest) + " visualised!")
@@ -804,16 +795,16 @@ def AHCResultsVisualisation(directoryData,                                      
 
 
     if (plotClusterMeans):
-        figure            = pyplot.figure(figsize = (figureWidthClusterMeans, figureHeightClusterMeans))
+        figure            = plt.figure(figsize = (figureWidthClusterMeans, figureHeightClusterMeans))
 
         numberOfRows      = rowSpanGroups + rowSpanDimensions + numberOfClustersLowest * rowSpanCluster + rowSpanWhiteSpace + rowSpanColourBar
         numberOfColumns   = 3
 
         gridspec.GridSpec(numberOfRows, numberOfColumns)
 
-        axesGroups        = pyplot.subplot2grid((numberOfRows, numberOfColumns), (0, 0), rowspan = rowSpanGroups, colspan = 3)
+        axesGroups        = plt.subplot2grid((numberOfRows, numberOfColumns), (0, 0), rowspan = rowSpanGroups, colspan = 3)
 
-        groups            = numpy.zeros(numberOfDimensions)
+        groups            = np.zeros(numberOfDimensions)
         # Apply 'hacky' fix so that the last group name can be plotted.
         listGroupIndices  = listGroupIndices.copy()
         listGroupIndices.append(numberOfDimensions)
@@ -822,12 +813,12 @@ def AHCResultsVisualisation(directoryData,                                      
             groups[listGroupIndices[i] : ] += 1
             axesGroups.text((listGroupIndices[i] + listGroupIndices[i + 1] - 1) / 2, 0, listGroupNames[i], horizontalalignment = "center", verticalalignment = "center", fontsize = fontSizeGroups)
 
-        axesGroups.imshow(numpy.reshape(groups, (1, numberOfDimensions)), cmap = colourMapClusterMeans, aspect = "auto", alpha = .75)
+        axesGroups.imshow(np.reshape(groups, (1, numberOfDimensions)), cmap = colourMapClusterMeans, aspect = "auto", alpha = .75)
         axesGroups.set_xticks([])
         axesGroups.set_yticks([])
 
-        axesDimensions = pyplot.subplot2grid((numberOfRows, numberOfColumns), (rowSpanGroups, 0), rowspan = rowSpanDimensions, colspan = 3)
-        axesDimensions.imshow(numpy.reshape(groups, (1, numberOfDimensions)), cmap = colourMapClusterMeans, aspect = "auto", alpha = .5)
+        axesDimensions = plt.subplot2grid((numberOfRows, numberOfColumns), (rowSpanGroups, 0), rowspan = rowSpanDimensions, colspan = 3)
+        axesDimensions.imshow(np.reshape(groups, (1, numberOfDimensions)), cmap = colourMapClusterMeans, aspect = "auto", alpha = .5)
         axesDimensions.set_xticks([])
         axesDimensions.set_yticks([])
 
@@ -835,9 +826,9 @@ def AHCResultsVisualisation(directoryData,                                      
             axesDimensions.text(i, 0, dimensionsUsed[i], rotation = 90, horizontalalignment = "center", verticalalignment = "center", fontsize = fontSizeDimensions)
 
         for i in range(numberOfClustersLowest):
-            axesCluster = pyplot.subplot2grid((numberOfRows, numberOfColumns), (rowSpanGroups + rowSpanDimensions + i * rowSpanCluster, 0), rowspan = rowSpanCluster, colspan = 3)
+            axesCluster = plt.subplot2grid((numberOfRows, numberOfColumns), (rowSpanGroups + rowSpanDimensions + i * rowSpanCluster, 0), rowspan = rowSpanCluster, colspan = 3)
 
-            axesCluster.imshow(numpy.reshape(clusterMeansList[i], (1, numberOfDimensions)), cmap = colourMapClusters, aspect = "auto", vmin = 0, vmax = 1, alpha = 1)
+            axesCluster.imshow(np.reshape(clusterMeansList[i], (1, numberOfDimensions)), cmap = colourMapClusters, aspect = "auto", vmin = 0, vmax = 1, alpha = 1)
 
             axesCluster.set_xticks([])
             axesCluster.set_yticks([0])
@@ -846,23 +837,23 @@ def AHCResultsVisualisation(directoryData,                                      
 
             if (plotClusterMeansText):
                 for j, clusterMean in zip(range(numberOfDimensions), clusterMeansList[i]):
-                    axesCluster.text(j, 0, numpy.round(clusterMean, 2), c = "gray", ha = "center", va = "center")
+                    axesCluster.text(j, 0, np.round(clusterMean, 2), c = "gray", ha = "center", va = "center")
 
 
-        axesWhiteSpace = pyplot.subplot2grid((numberOfRows, numberOfColumns), (rowSpanGroups + rowSpanDimensions + numberOfClustersLowest * rowSpanCluster, 0), rowspan = rowSpanWhiteSpace, colspan = 3)
+        axesWhiteSpace = plt.subplot2grid((numberOfRows, numberOfColumns), (rowSpanGroups + rowSpanDimensions + numberOfClustersLowest * rowSpanCluster, 0), rowspan = rowSpanWhiteSpace, colspan = 3)
         axesWhiteSpace.set_visible(False)
 
-        axesColourBar = pyplot.subplot2grid((numberOfRows, numberOfColumns), (rowSpanGroups + rowSpanDimensions + numberOfClustersLowest * rowSpanCluster + rowSpanWhiteSpace, 2), rowspan = rowSpanColourBar, colspan = 1)
-        axesColourBar.imshow(numpy.reshape(numpy.linspace(0, 1, num = 1000 + 1, endpoint = True), (1, 1000 + 1)), cmap = colourMapClusters, aspect = "auto", vmin = 0, vmax = 1, alpha = 1)
+        axesColourBar = plt.subplot2grid((numberOfRows, numberOfColumns), (rowSpanGroups + rowSpanDimensions + numberOfClustersLowest * rowSpanCluster + rowSpanWhiteSpace, 2), rowspan = rowSpanColourBar, colspan = 1)
+        axesColourBar.imshow(np.reshape(np.linspace(0, 1, num = 1000 + 1, endpoint = True), (1, 1000 + 1)), cmap = colourMapClusters, aspect = "auto", vmin = 0, vmax = 1, alpha = 1)
         axesColourBar.set_xticks([0, 1000])
         axesColourBar.set_xticklabels([0, 1])
         axesColourBar.set_yticks([])
 
         #figure.set_size_inches(w = 11.7 * 2, h = 8.3 * 2 * .95)
-        pyplot.subplots_adjust(left = leftClusterMeans, right = rightClusterMeans, bottom = bottomClusterMeans, top = topClusterMeans)#, hspace = 0)
+        plt.subplots_adjust(left = leftClusterMeans, right = rightClusterMeans, bottom = bottomClusterMeans, top = topClusterMeans)#, hspace = 0)
         figure.savefig(directoryFigures + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "ClusterMeans" + figureExtension)
 
-        pyplot.close()
+        plt.close()
 
 
 
@@ -872,30 +863,30 @@ def AHCResultsVisualisation(directoryData,                                      
             Plots all distances between the clusters present at this iteration of the algorithm.
             '''
 
-            distanceInterClustersMax = numpy.amax(distanceInterClustersMatrix[numpy.triu_indices(numberOfClustersLowest, k = 1)])
+            distanceInterClustersMax = np.amax(distanceInterClustersMatrix[np.triu_indices(numberOfClustersLowest, k = 1)])
 
-            pyplot.figure(figsize = (figureWidthDistanceInterClustersMatrix, figureHeightDistanceInterClustersMatrix))
-            image                    = pyplot.imshow(distanceInterClustersMatrix / distanceInterClustersMax * 100, vmin = distanceVMin, vmax = 100, cmap = colourMapDistanceInterClustersMatrices)
-            axesMain                 = pyplot.gca()
+            plt.figure(figsize = (figureWidthDistanceInterClustersMatrix, figureHeightDistanceInterClustersMatrix))
+            image                    = plt.imshow(distanceInterClustersMatrix / distanceInterClustersMax * 100, vmin = distanceVMin, vmax = 100, cmap = colourMapDistanceInterClustersMatrices)
+            axesMain                 = plt.gca()
             axesColourBar            = make_axes_locatable(axesMain).append_axes("right", size = colourBarWidth, pad = colourBarDistance)
-            colourBar                = pyplot.colorbar(image, cax = axesColourBar, label = r"distance relative to largest distance (\%)")
+            colourBar                = plt.colorbar(image, cax = axesColourBar, label = r"distance relative to largest distance (\%)")
 
             for i in range(numberOfClustersLowest):
                 for j in range(i + 1, numberOfClustersLowest):
-                    axesMain.text(j, i, str(int(numpy.round(distanceInterClustersMatrix[i, j] / distanceInterClustersMax * 100))) + r"\%", c = "white", horizontalalignment = "center", verticalalignment = "center", fontsize = "x-small")
+                    axesMain.text(j, i, str(int(np.round(distanceInterClustersMatrix[i, j] / distanceInterClustersMax * 100))) + r"\%", c = "white", horizontalalignment = "center", verticalalignment = "center", fontsize = "x-small")
 
             axesMain.set_aspect("equal")
             axesMain.set_xlabel("cluster ID")
             axesMain.set_ylabel("cluster ID")
-            axesMain.set_xticks(numpy.arange(numberOfClustersLowest))
-            axesMain.set_yticks(numpy.arange(numberOfClustersLowest))
-            axesMain.set_xticklabels(numpy.arange(numberOfClustersLowest) + 1)
-            axesMain.set_yticklabels(numpy.arange(numberOfClustersLowest) + 1)
+            axesMain.set_xticks(np.arange(numberOfClustersLowest))
+            axesMain.set_yticks(np.arange(numberOfClustersLowest))
+            axesMain.set_xticklabels(np.arange(numberOfClustersLowest) + 1)
+            axesMain.set_yticklabels(np.arange(numberOfClustersLowest) + 1)
             axesMain.set_title(r"\textbf{" + linkageTypeCurrent + r" linkage distances between all pairs of " + str(numberOfClustersLowest) + " clusters}" + "\n" + r"Gower's distance metric $\vert$ " + linkageType + " linkage clustering")
-            pyplot.subplots_adjust(left = 0.07, right = 0.91, bottom = 0.07, top = 0.93)
-            pyplot.savefig(directoryFigures + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "DistanceInterClustersMatrix" + linkageTypeCurrent.capitalize() + figureExtension)
+            plt.subplots_adjust(left = 0.07, right = 0.91, bottom = 0.07, top = 0.93)
+            plt.savefig(directoryFigures + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "DistanceInterClustersMatrix" + linkageTypeCurrent.capitalize() + figureExtension)
 
-            pyplot.close()
+            plt.close()
 
         plotDistanceInterClustersMatrix(distanceInterClustersMatrixComplete, "complete")
         plotDistanceInterClustersMatrix(distanceInterClustersMatrixAverage,  "average")
@@ -906,7 +897,7 @@ def AHCResultsVisualisation(directoryData,                                      
         # Plot clustering from 'numberOfClustersLowest' to 1 cluster.
 
         # Load dendrogram matrix.
-        dendrogramMatrix           = numpy.load(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + "DendrogramMatrix.npy")
+        dendrogramMatrix           = np.load(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + "DendrogramMatrix.npy")
 
         # Select last few rows of dendrogram matrix.
         dendrogramMatrixPartialOld = dendrogramMatrix[-(numberOfClustersLowest - 1) : , : ]
@@ -914,59 +905,59 @@ def AHCResultsVisualisation(directoryData,                                      
 
         # Manipulate this last bit of the dendrogram matrix: rename cluster indices and change the inter-cluster distances of the third column.
         # See documentation of scipy.cluster.hierarchy.linkage.
-        dendrogramMatrixPartialNew = numpy.copy(dendrogramMatrixPartialOld)
+        dendrogramMatrixPartialNew = np.copy(dendrogramMatrixPartialOld)
 
         # Change the 'large number' cluster indices so that they match the 'small number' cluster indices shown in other plots.
         # Without this change of indices, we can't trick 'scipy.cluster.hierarchy.linkage' into accepting this smaller dendrogram matrix.
-        indicesOld                 = numpy.sort(dendrogramMatrixPartialOld[ : , : 2].flatten())
-        indicesNew                 = numpy.arange(2 * (numberOfClustersLowest - 1))
+        indicesOld                 = np.sort(dendrogramMatrixPartialOld[ : , : 2].flatten())
+        indicesNew                 = np.arange(2 * (numberOfClustersLowest - 1))
         for indexOld, indexNew in zip(indicesOld, indicesNew):
             dendrogramMatrixPartialNew[dendrogramMatrixPartialOld == indexOld] = indexNew
 
         # Change distances to make the vertical steps in the dendrogram uniformly 1.
-        dendrogramMatrixPartialNew[ : , 2] = numpy.arange(numberOfClustersLowest - 1) + 1
+        dendrogramMatrixPartialNew[ : , 2] = np.arange(numberOfClustersLowest - 1) + 1
 
 
         # Plot dendrogram.
-        pyplot.figure(figsize = (figureWidthDendrogram, figureHeightDendrogram))#(12, 8))#[6, 4, 5, 2, 3, 1, 0])
-        hierarchy.dendrogram(dendrogramMatrixPartialNew, link_color_func = lambda k: colourDendrogram, labels = numpy.arange(numberOfClustersLowest) + 1)
-        pyplot.xlabel("cluster ID")
-        pyplot.ylabel("number of clusters (1)")
+        plt.figure(figsize = (figureWidthDendrogram, figureHeightDendrogram))#(12, 8))#[6, 4, 5, 2, 3, 1, 0])
+        hierarchy.dendrogram(dendrogramMatrixPartialNew, link_color_func = lambda k: colourDendrogram, labels = np.arange(numberOfClustersLowest) + 1)
+        plt.xlabel("cluster ID")
+        plt.ylabel("number of clusters (1)")
 
         # Set y-axis ticks and tick labels.
-        yTicks                     = numpy.arange(numberOfClustersLowest)
+        yTicks                     = np.arange(numberOfClustersLowest)
         yTickLabels                = []
         for yTick in yTicks:
             yTickLabels.append(str(numberOfClustersLowest - yTick))
-        pyplot.gca().set_yticks(yTicks)
-        pyplot.gca().set_yticklabels(yTickLabels)
+        plt.gca().set_yticks(yTicks)
+        plt.gca().set_yticklabels(yTickLabels)
 
-        pyplot.grid(ls = "--", axis = "y", alpha = .25)
-        pyplot.title(r"dendrogram $\vert$ $\textbf{" + linkageType + "}$ linkage")
-        pyplot.tight_layout()
-        pyplot.savefig(directoryFigures + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "Dendrogram" + figureExtension)
-        pyplot.close()
+        plt.grid(ls = "--", axis = "y", alpha = .25)
+        plt.title(r"dendrogram $\vert$ $\textbf{" + linkageType + "}$ linkage")
+        plt.tight_layout()
+        plt.savefig(directoryFigures + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClustersLowest) + "Dendrogram" + figureExtension)
+        plt.close()
 #numberOfRows                            = 6,
 #numberOfColumns                         = 24,
-#pyplot.ylabel("mean missing-data-corrected weighted Manhattan distance per weight (1)")
-#pyplot.title(r"\textbf{" + projectName + "}" + "\n" + r"dendrogram after agglomerative hierarchical clustering $\vert$ " + linkageType + " linkage")
+#plt.ylabel("mean missing-data-corrected weighted Manhattan distance per weight (1)")
+#plt.title(r"\textbf{" + projectName + "}" + "\n" + r"dendrogram after agglomerative hierarchical clustering $\vert$ " + linkageType + " linkage")
 # We're differentiating between cluster indices and cluster IDs. A cluster's ID is always 1 higher than that cluster's index.
 #IDNew = indexNew + 1
-#indicesOld                 = numpy.sort(dendrogramMatrixPartialOld[ : , : 2].flatten())[ : numberOfClustersLowest]
-#indicesNew                 = numpy.arange(numberOfClustersLowest)
-#indicesNew[ : numberOfClustersLowest] = numpy.array([6, 4, 5, 2, 3, 1, 0])
-#labels = ["cluster 7", "cluster 6", "cluster 4", "cluster 5", "cluster 2", "cluster 3", "cluster 1"], link_color_func = lambda k: "navy") #labels = organisationNames,labels = numpy.array([6, 4, 5, 2, 3, 1, 0]) + 1,
-#numpy.linspace(1 / (numberOfClustersLowest - 1), 1, num = 6, endpoint = True)
+#indicesOld                 = np.sort(dendrogramMatrixPartialOld[ : , : 2].flatten())[ : numberOfClustersLowest]
+#indicesNew                 = np.arange(numberOfClustersLowest)
+#indicesNew[ : numberOfClustersLowest] = np.array([6, 4, 5, 2, 3, 1, 0])
+#labels = ["cluster 7", "cluster 6", "cluster 4", "cluster 5", "cluster 2", "cluster 3", "cluster 1"], link_color_func = lambda k: "navy") #labels = organisationNames,labels = np.array([6, 4, 5, 2, 3, 1, 0]) + 1,
+#np.linspace(1 / (numberOfClustersLowest - 1), 1, num = 6, endpoint = True)
 '''
-yTickLabels = (numpy.arange(numberOfClustersLowest) + 1)[::-1]
+yTickLabels = (np.arange(numberOfClustersLowest) + 1)[::-1]
 
 yTickLabelStrings = []
 for yTickLabel in yTickLabels:
     yTickLabelStrings.append(str(yTickLabel))
 yTickLabelStrings[0] = ""
 
-pyplot.gca().set_yticks(yTickLabels)
-pyplot.gca().set_yticklabels(yTickLabelStrings)#(numpy.arange(numberOfClustersLowest) + 1)[::-1])
+plt.gca().set_yticks(yTickLabels)
+plt.gca().set_yticklabels(yTickLabelStrings)#(np.arange(numberOfClustersLowest) + 1)[::-1])
 '''
 '''
 print(dendrogramMatrix.shape)
@@ -986,15 +977,9 @@ Martijn Simon Soen Liong Oei, April 12021 H.E.
 
 Calculates and visualises the non-randomness of the agglomerative hierarchical clustering by means of a resampling simulation.
 
-clusterList:  numpy.ndarray of lists, contains cluster observation indices
-clusterSizes: numpy.ndarray of ints,  contains cluster sizes
+clusterList:  np.ndarray of lists, contains cluster observation indices
+clusterSizes: np.ndarray of ints,  contains cluster sizes
 '''
-
-from matplotlib import pyplot
-import matplotlib, numpy, os
-matplotlib.rcParams["text.usetex"] = True
-matplotlib.rcParams["savefig.dpi"] = 400
-
 def AHCResampling(directoryData,
                   directoryFigures,
                   linkageType,
@@ -1039,12 +1024,12 @@ def AHCResampling(directoryData,
 
     # Load data.
     # Load 'observationMatrix'.
-    observationMatrix          = numpy.load(directoryData + dataSetName + "/" + "observationMatrix.npy")
+    observationMatrix          = np.load(directoryData + dataSetName + "/" + "observationMatrix.npy")
     numberOfObservations, numberOfDimensions = observationMatrix.shape
 
     nameFileOutput             = "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "ClusterList" + ".npy"
-    clusterList                = numpy.load(directoryData + dataSetName + "/" + nameFileOutput, allow_pickle = True)
-    clusterSizes               = numpy.empty(numberOfClusters, dtype = int) # in 1
+    clusterList                = np.load(directoryData + dataSetName + "/" + nameFileOutput, allow_pickle = True)
+    clusterSizes               = np.empty(numberOfClusters, dtype = int) # in 1
     for i in range(numberOfClusters):
         clusterSizes[i] = len(clusterList[i])
 
@@ -1052,25 +1037,25 @@ def AHCResampling(directoryData,
     # Resample.
     clusterResampledMeans      = []
     for i in range(numberOfClusters):
-        clusterResampledMeans.append(numpy.empty((numberOfResamples, numberOfDimensions)))
+        clusterResampledMeans.append(np.empty((numberOfResamples, numberOfDimensions)))
 
     for i in range(numberOfResamples):
-        observationMatrixShuffled = numpy.random.permutation(observationMatrix)
+        observationMatrixShuffled = np.random.permutation(observationMatrix)
 
         for j in range(numberOfClusters):
-            indexStart = numpy.sum(clusterSizes[0 : j])
-            indexEnd   = numpy.sum(clusterSizes[0 : j + 1])
+            indexStart = np.sum(clusterSizes[0 : j])
+            indexEnd   = np.sum(clusterSizes[0 : j + 1])
 
-            clusterResampledMeans[j][i, : ] = numpy.nanmean(observationMatrixShuffled[indexStart : indexEnd], axis = 0)
+            clusterResampledMeans[j][i, : ] = np.nanmean(observationMatrixShuffled[indexStart : indexEnd], axis = 0)
 
 
     # Characterise mean and standard deviation of resample means.
-    clusterResampledMeansMeans = numpy.empty((numberOfClusters, numberOfDimensions))
-    clusterResampledMeansSDs   = numpy.empty((numberOfClusters, numberOfDimensions))
+    clusterResampledMeansMeans = np.empty((numberOfClusters, numberOfDimensions))
+    clusterResampledMeansSDs   = np.empty((numberOfClusters, numberOfDimensions))
 
     for i in range(numberOfClusters):
-        clusterResampledMeansMeans[i, : ] = numpy.nanmean(clusterResampledMeans[i], axis = 0)
-        clusterResampledMeansSDs[i, : ]   = numpy.nanstd(clusterResampledMeans[i], axis = 0)
+        clusterResampledMeansMeans[i, : ] = np.nanmean(clusterResampledMeans[i], axis = 0)
+        clusterResampledMeansSDs[i, : ]   = np.nanstd(clusterResampledMeans[i], axis = 0)
 
 
 
@@ -1081,33 +1066,33 @@ def AHCResampling(directoryData,
 
     if (plotScatters):
         for i in range(numberOfClusters):
-            pyplot.figure(figsize = (figureWidthScatters, figureHeightScatters))
+            plt.figure(figsize = (figureWidthScatters, figureHeightScatters))
 
-            pyplot.scatter(range(numberOfDimensions), numpy.nanmean(observationMatrix[clusterList[i]], axis = 0), c = "mediumseagreen", zorder = 2)
+            plt.scatter(range(numberOfDimensions), np.nanmean(observationMatrix[clusterList[i]], axis = 0), c = "mediumseagreen", zorder = 2)
             for j in range(numberOfResamples):
-                pyplot.scatter(range(numberOfDimensions), clusterResampledMeans[i][j], c = "gray", alpha = .05, zorder = 1)
+                plt.scatter(range(numberOfDimensions), clusterResampledMeans[i][j], c = "gray", alpha = .05, zorder = 1)
 
-            pyplot.scatter(range(numberOfDimensions), clusterResampledMeansMeans[i], facecolors = "none", edgecolors = "black")
-            pyplot.xlim(-.5, numberOfDimensions - .5)
-            pyplot.ylim(-0.05, 1.05)
+            plt.scatter(range(numberOfDimensions), clusterResampledMeansMeans[i], facecolors = "none", edgecolors = "black")
+            plt.xlim(-.5, numberOfDimensions - .5)
+            plt.ylim(-0.05, 1.05)
 
-            pyplot.gca().set_xticks(range(numberOfDimensions))
-            pyplot.gca().set_xticklabels(dimensionsUsed, rotation = 90, fontsize = 6)
+            plt.gca().set_xticks(range(numberOfDimensions))
+            plt.gca().set_xticklabels(dimensionsUsed, rotation = 90, fontsize = 6)
 
-            pyplot.title("cluster " + str(i + 1) + " of " + str(numberOfClusters) + r" $\vert$ " + str(clusterSizes[i]) + r" observations $\vert$ $\textbf{" + linkageType + "}$ linkage")
-            pyplot.grid(ls = "--", alpha = .2)
-            pyplot.tight_layout()
-            pyplot.savefig(directoryFigures + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "ClusterSignificance" + str(i + 1) + plotScattersExtension)
-            pyplot.close()
+            plt.title("cluster " + str(i + 1) + " of " + str(numberOfClusters) + r" $\vert$ " + str(clusterSizes[i]) + r" observations $\vert$ $\textbf{" + linkageType + "}$ linkage")
+            plt.grid(ls = "--", alpha = .2)
+            plt.tight_layout()
+            plt.savefig(directoryFigures + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "ClusterSignificance" + str(i + 1) + plotScattersExtension)
+            plt.close()
 
 
     if (plotBarcodes):
-        figure           = pyplot.figure(figsize = (figureWidthBarcodes, figureHeightBarcodes))
+        figure           = plt.figure(figsize = (figureWidthBarcodes, figureHeightBarcodes))
 
         numberOfRows     = rowSpanGroups + rowSpanDimensions + numberOfClusters * rowSpanCluster + rowSpanWhiteSpace + rowSpanColourBar
 
-        axesGroups       = pyplot.subplot2grid((numberOfRows, numberOfColumns), (0, 0), rowspan = rowSpanGroups, colspan = 3)
-        groups           = numpy.zeros(numberOfDimensions)
+        axesGroups       = plt.subplot2grid((numberOfRows, numberOfColumns), (0, 0), rowspan = rowSpanGroups, colspan = 3)
+        groups           = np.zeros(numberOfDimensions)
         # Apply 'hacky' fix so that the last group name can be plotted.
         listGroupIndices = listGroupIndices.copy()
         listGroupIndices.append(numberOfDimensions)
@@ -1116,12 +1101,12 @@ def AHCResampling(directoryData,
             groups[listGroupIndices[i] : ] += 1
             axesGroups.text((listGroupIndices[i] + listGroupIndices[i + 1] - 1) / 2, 0, listGroupNames[i], horizontalalignment = "center", verticalalignment = "center", fontsize = fontSizeGroups)
 
-        axesGroups.imshow(numpy.reshape(groups, (1, numberOfDimensions)), cmap = colourMapBarcodes, aspect = "auto", alpha = .75)
+        axesGroups.imshow(np.reshape(groups, (1, numberOfDimensions)), cmap = colourMapBarcodes, aspect = "auto", alpha = .75)
         axesGroups.set_xticks([])
         axesGroups.set_yticks([])
 
-        axesDimensions  = pyplot.subplot2grid((numberOfRows, numberOfColumns), (rowSpanGroups, 0), rowspan = rowSpanDimensions, colspan = 3)
-        axesDimensions.imshow(numpy.reshape(groups, (1, numberOfDimensions)), cmap = colourMapBarcodes, aspect = "auto", alpha = .5)
+        axesDimensions  = plt.subplot2grid((numberOfRows, numberOfColumns), (rowSpanGroups, 0), rowspan = rowSpanDimensions, colspan = 3)
+        axesDimensions.imshow(np.reshape(groups, (1, numberOfDimensions)), cmap = colourMapBarcodes, aspect = "auto", alpha = .5)
         axesDimensions.set_xticks([])
         axesDimensions.set_yticks([])
 
@@ -1129,13 +1114,13 @@ def AHCResampling(directoryData,
             axesDimensions.text(i, 0, dimensionsUsed[i], rotation = 90, horizontalalignment = "center", verticalalignment = "center", fontsize = fontSizeDimensions)
 
         for clusterIndex in range(numberOfClusters):
-            axesCluster           = pyplot.subplot2grid((numberOfRows, numberOfColumns), (rowSpanGroups + rowSpanDimensions + clusterIndex * rowSpanCluster, 0), rowspan = rowSpanCluster, colspan = 3)
+            axesCluster           = plt.subplot2grid((numberOfRows, numberOfColumns), (rowSpanGroups + rowSpanDimensions + clusterIndex * rowSpanCluster, 0), rowspan = rowSpanCluster, colspan = 3)
 
             # Calculate, for this cluster and for each dimension, the (masked) significance of the deviation of the observed mean from the mean of the resampled means.
-            numbersOfObservations = clusterSizes[clusterIndex] - numpy.sum(numpy.isnan(observationMatrix[clusterList[clusterIndex]]), axis = 0) # for this cluster, the number of observations available for each dimension; not to be confused with 'numberOfObservations'
-            significances         = (numpy.nanmean(observationMatrix[clusterList[clusterIndex]], axis = 0) - clusterResampledMeansMeans[clusterIndex]) / clusterResampledMeansSDs[clusterIndex]
-            significances[numbersOfObservations < numberOfObservationsMin] = numpy.nan
-            significances         = numpy.reshape(significances, (1, numberOfDimensions))
+            numbersOfObservations = clusterSizes[clusterIndex] - np.sum(np.isnan(observationMatrix[clusterList[clusterIndex]]), axis = 0) # for this cluster, the number of observations available for each dimension; not to be confused with 'numberOfObservations'
+            significances         = (np.nanmean(observationMatrix[clusterList[clusterIndex]], axis = 0) - clusterResampledMeansMeans[clusterIndex]) / clusterResampledMeansSDs[clusterIndex]
+            significances[numbersOfObservations < numberOfObservationsMin] = np.nan
+            significances         = np.reshape(significances, (1, numberOfDimensions))
 
             # Plot, for this cluster, bar code with significances.
             axesCluster.imshow(significances, cmap = colourMapSignificances, aspect = "auto", vmin = -1 * numberOfSigmataMax, vmax = numberOfSigmataMax, alpha = 1)
@@ -1147,25 +1132,25 @@ def AHCResampling(directoryData,
 
             if (plotBarcodesText):
                 for j, significance in zip(range(numberOfDimensions), significances[0]):
-                    axesCluster.text(j, 0, numpy.round(significance, 1), c = "gray", ha = "center", va = "center")
+                    axesCluster.text(j, 0, np.round(significance, 1), c = "gray", ha = "center", va = "center")
 
 
-        axesWhiteSpace  = pyplot.subplot2grid((numberOfRows, numberOfColumns), (rowSpanGroups + rowSpanDimensions + numberOfClusters * rowSpanCluster, 0), rowspan = rowSpanWhiteSpace, colspan = 3)
+        axesWhiteSpace  = plt.subplot2grid((numberOfRows, numberOfColumns), (rowSpanGroups + rowSpanDimensions + numberOfClusters * rowSpanCluster, 0), rowspan = rowSpanWhiteSpace, colspan = 3)
         axesWhiteSpace.set_visible(False)
 
-        axesColourBar   = pyplot.subplot2grid((numberOfRows, numberOfColumns), (rowSpanGroups + rowSpanDimensions + numberOfClusters * rowSpanCluster + rowSpanWhiteSpace, 2), rowspan = rowSpanColourBar, colspan = 1)
+        axesColourBar   = plt.subplot2grid((numberOfRows, numberOfColumns), (rowSpanGroups + rowSpanDimensions + numberOfClusters * rowSpanCluster + rowSpanWhiteSpace, 2), rowspan = rowSpanColourBar, colspan = 1)
         numberOfColours = 1000 + 1 # in 1
-        axesColourBar.imshow(numpy.reshape(numpy.linspace(-1 * numberOfSigmataMax, numberOfSigmataMax, num = numberOfColours, endpoint = True), (1, numberOfColours)), cmap = colourMapSignificances, aspect = "auto", vmin = -1 * numberOfSigmataMax, vmax = numberOfSigmataMax, alpha = 1)
+        axesColourBar.imshow(np.reshape(np.linspace(-1 * numberOfSigmataMax, numberOfSigmataMax, num = numberOfColours, endpoint = True), (1, numberOfColours)), cmap = colourMapSignificances, aspect = "auto", vmin = -1 * numberOfSigmataMax, vmax = numberOfSigmataMax, alpha = 1)
         axesColourBar.set_xticks([-.5, (numberOfColours - 1) / 2 - numberOfColours / (2 * numberOfSigmataMax) * numberOfSigmataTick, (numberOfColours - 1) / 2, (numberOfColours - 1) / 2 + numberOfColours / (2 * numberOfSigmataMax) * numberOfSigmataTick, numberOfColours - .5])
         axesColourBar.set_xticklabels([r"$-" + str(numberOfSigmataMax) + r"\ \sigma$", r"$-" + str(numberOfSigmataTick) + "\ \sigma$", r"$0$", r"$" + str(numberOfSigmataTick) + "\ \sigma$", r"$" + str(numberOfSigmataMax) + r"\ \sigma$"])
         axesColourBar.set_yticks([])
 
         #figure.set_size_inches(w = 11.7 * 2, h = 8.3 * 2 * .95)
-        pyplot.subplots_adjust(left = leftBarcodes, right = rightBarcodes, bottom = bottomBarcodes, top = topBarcodes)
+        plt.subplots_adjust(left = leftBarcodes, right = rightBarcodes, bottom = bottomBarcodes, top = topBarcodes)
 
         figure.savefig(directoryFigures + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "ClusterSignificances" + plotBarcodesExtension)
 
-        pyplot.close()
+        plt.close()
 
 
 
@@ -1173,14 +1158,6 @@ def AHCResampling(directoryData,
 '''
 Martijn Simon Soen Liong Oei, April 12021 H.E.
 '''
-
-from matplotlib import cm, colorbar, pyplot
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-import copy, numpy, os
-import matplotlib
-matplotlib.rcParams["text.usetex"] = True
-
-
 def AHCDataExploration(directoryData,
                        directoryFigures,
                        dataSetName,
@@ -1199,10 +1176,10 @@ def AHCDataExploration(directoryData,
     colourMap.set_bad(color = "white")
 
     # Load 'observationMatrix' and 'hasObservation'.
-    observationMatrix = numpy.load(directoryData + dataSetName + "/" + "observationMatrix.npy")
+    observationMatrix = np.load(directoryData + dataSetName + "/" + "observationMatrix.npy")
     numberOfObservations, numberOfDimensions = observationMatrix.shape
     hasObservation    = loadAvailabilityMatrix(observationMatrix)
-    observationNames  = numpy.arange(numberOfObservations)
+    observationNames  = np.arange(numberOfObservations)
 
 
     # Generate the directory for the figures, if it does not exist yet.
@@ -1212,65 +1189,58 @@ def AHCDataExploration(directoryData,
 
     # Plots the observation matrix.
     if (plotObservationMatrix):
-        # As not all observation matrices have 'numpy.float64' entries, we create a copy of the observation matrix for which this is true.
-        observationMatrixPlot = observationMatrix.astype(numpy.float64)
+        # As not all observation matrices have 'np.float64' entries, we create a copy of the observation matrix for which this is true.
+        observationMatrixPlot = observationMatrix.astype(np.float64)
 
 
-        pyplot.figure(figsize = (numberOfDimensions * .3, numberOfObservations * .3))
-        pyplot.imshow(observationMatrixPlot, cmap = colourMap, aspect = "auto")
-        axesMain              = pyplot.gca()
+        plt.figure(figsize = (numberOfDimensions * .3, numberOfObservations * .3))
+        plt.imshow(observationMatrixPlot, cmap = colourMap, aspect = "auto")
+        axesMain              = plt.gca()
         axesColourBar         = make_axes_locatable(axesMain).append_axes("right", size = colourBarWidth, pad = colourBarDistance)
         '''
         boundaries            = [0, 1, 2, 3]
-        colours               = colourMap(numpy.linspace(0, 1, endpoint = True, num = 4))
+        colours               = colourMap(np.linspace(0, 1, endpoint = True, num = 4))
         colourBarMap          = colors.ListedColormap(colours)
         colourBar             = colorbar.ColorbarBase(axesColourBar, cmap = colourBarMap, orientation = "vertical", ticks = [0.125, 0.375, 0.625, 0.875])
         colourBar.set_ticklabels(boundaries)
         '''
         colourBar             = colorbar.ColorbarBase(axesColourBar, cmap = colourMap, orientation = "vertical")
 
-        axesMain.set_xticks(numpy.arange(numberOfDimensions))
+        axesMain.set_xticks(np.arange(numberOfDimensions))
         axesMain.set_xticklabels(dimensionsUsed, rotation = 90)
-        axesMain.set_yticks(numpy.arange(numberOfObservations))
+        axesMain.set_yticks(np.arange(numberOfObservations))
         axesMain.set_yticklabels(observationNames)
         axesMain.set_ylim(-0.5, numberOfObservations - 0.5) # use margins of 0.5 to ensure the first and last row are shown fully
         axesMain.invert_yaxis()
         axesMain.set_title(projectName + "\nobservation matrix")
-        pyplot.tight_layout()
-        pyplot.savefig(directoryFigures + dataSetName + "/" + "AHC" + "ObservationMatrix" + ".pdf")
-        pyplot.close()
+        plt.tight_layout()
+        plt.savefig(directoryFigures + dataSetName + "/" + "AHC" + "ObservationMatrix" + ".pdf")
+        plt.close()
 
 
     # Plots the availability matrix.
     if (plotAvailabilityMatrix):
-        pyplot.figure(figsize = (numberOfDimensions * .3, numberOfObservations * .3))
-        pyplot.imshow(hasObservation, cmap = colourMapBinary, aspect = "auto")
-        axesMain      = pyplot.gca()
+        plt.figure(figsize = (numberOfDimensions * .3, numberOfObservations * .3))
+        plt.imshow(hasObservation, cmap = colourMapBinary, aspect = "auto")
+        axesMain      = plt.gca()
         axesColourBar = make_axes_locatable(axesMain).append_axes("right", size = colourBarWidth, pad = colourBarDistance)
         colourBar     = colorbar.ColorbarBase(axesColourBar, cmap = colourMapBinary, orientation = "vertical")
 
-        axesMain.set_xticks(numpy.arange(numberOfDimensions))
+        axesMain.set_xticks(np.arange(numberOfDimensions))
         axesMain.set_xticklabels(dimensionsUsed, rotation = 90)
-        axesMain.set_yticks(numpy.arange(numberOfObservations))
+        axesMain.set_yticks(np.arange(numberOfObservations))
         axesMain.set_yticklabels(observationNames)
         axesMain.set_ylim(-0.5, numberOfObservations - 0.5) # use margins of 0.5 to ensure the first and last row are shown fully
         axesMain.invert_yaxis()
         axesMain.set_title(projectName + "\nobservation availability matrix")
-        pyplot.tight_layout()
-        pyplot.savefig(directoryFigures + dataSetName + "/" + "AHC" + "ObservationAvailabilityMatrix" + ".pdf")
-        pyplot.close()
-
-
+        plt.tight_layout()
+        plt.savefig(directoryFigures + dataSetName + "/" + "AHC" + "ObservationAvailabilityMatrix" + ".pdf")
+        plt.close()
 
 
 '''
 Martijn Simon Soen Liong Oei, April 12021 H.E.
 '''
-
-from matplotlib import cm, pyplot
-import matplotlib, numpy, os, pandas
-matplotlib.rcParams["text.usetex"] = True
-matplotlib.rcParams["savefig.dpi"] = 400
 
 def AHCResultsRawData(directoryData,
                       directoryFigures,
@@ -1292,7 +1262,7 @@ def AHCResultsRawData(directoryData,
     linkageTypeCapitalised      = linkageType.capitalize()
 
     # Load data.
-    clusterList                 = numpy.load(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "ClusterList" + ".npy", allow_pickle = True)
+    clusterList                 = np.load(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "ClusterList" + ".npy", allow_pickle = True)
     observationMatrix, dimensionsUsed, numberOfObservations, numberOfDimensions = loadObservationMatrix(directoryData + fileName, indexColumnStart, indexColumnEnd)
 
 
@@ -1301,25 +1271,25 @@ def AHCResultsRawData(directoryData,
         os.makedirs(directoryFigures + dataSetName + "/")
 
     # Create figures.
-    colours                     = colourMap(numpy.linspace(0, 1, num = numberOfClusters, endpoint = True))
-    numberOfFigures             = int(numpy.ceil(numberOfDimensions / numberOfDimensionsPerFigure))
+    colours                     = colourMap(np.linspace(0, 1, num = numberOfClusters, endpoint = True))
+    numberOfFigures             = int(np.ceil(numberOfDimensions / numberOfDimensionsPerFigure))
 
     for indexFigure in range(numberOfFigures):
-        pyplot.figure(figsize = (3 * numberOfDimensionsPerFigure, 2 * numberOfClusters))
+        plt.figure(figsize = (3 * numberOfDimensionsPerFigure, 2 * numberOfClusters))
 
         for indexDimension in range(indexFigure * numberOfDimensionsPerFigure, min((indexFigure + 1) * numberOfDimensionsPerFigure, numberOfDimensions)):
 
             observationsDimension = observationMatrix[ : , indexDimension]
-            binMinEdgeLeft        = numpy.nanmin(observationsDimension)
-            binMaxEdgeRight       = numpy.nanmax(observationsDimension)
-            bins                  = numpy.linspace(binMinEdgeLeft, binMaxEdgeRight, num = numberOfBins + 1, endpoint = True)
+            binMinEdgeLeft        = np.nanmin(observationsDimension)
+            binMaxEdgeRight       = np.nanmax(observationsDimension)
+            bins                  = np.linspace(binMinEdgeLeft, binMaxEdgeRight, num = numberOfBins + 1, endpoint = True)
 
 
             for indexCluster in range(numberOfClusters):
-                axes                     = pyplot.subplot2grid((numberOfClusters, numberOfDimensionsPerFigure), (indexCluster, indexDimension - indexFigure * numberOfDimensionsPerFigure), rowspan = 1, colspan = 1)
+                axes                     = plt.subplot2grid((numberOfClusters, numberOfDimensionsPerFigure), (indexCluster, indexDimension - indexFigure * numberOfDimensionsPerFigure), rowspan = 1, colspan = 1)
                 observationsPlot         = observationMatrix[clusterList[indexCluster], indexDimension]
                 numberOfObservationsPlot = len(observationsPlot) # in 1
-                numberOfNaNsPlot         = numpy.sum(numpy.isnan(observationsPlot))
+                numberOfNaNsPlot         = np.sum(np.isnan(observationsPlot))
                 if (numberOfNaNsPlot < numberOfObservationsPlot):
                     n, bins, patches = axes.hist(observationMatrix[clusterList[indexCluster], indexDimension], color = colours[indexCluster], bins = bins)
                     for indexBin in range(numberOfBins):
@@ -1328,7 +1298,7 @@ def AHCResultsRawData(directoryData,
 
                 axes.set_facecolor(faceColour)
 
-                stringTitle = r"$N$: " + str(numberOfObservationsPlot - numberOfNaNsPlot) + r" $\vert$ " + r"$\mu$: " + str(numpy.round(numpy.nanmean(observationsPlot), 2)) + r" $\vert$ " + r"$\sigma$: " + str(numpy.round(numpy.nanstd(observationsPlot), 2))
+                stringTitle = r"$N$: " + str(numberOfObservationsPlot - numberOfNaNsPlot) + r" $\vert$ " + r"$\mu$: " + str(np.round(np.nanmean(observationsPlot), 2)) + r" $\vert$ " + r"$\sigma$: " + str(np.round(np.nanstd(observationsPlot), 2))
                 if (indexCluster == 0):
                     stringTitle = r"\textbf{" + dimensionsUsed[indexDimension] + r"}" + "\n" + stringTitle
                 axes.set_title(stringTitle)
@@ -1336,9 +1306,9 @@ def AHCResultsRawData(directoryData,
                 if (indexDimension - indexFigure * numberOfDimensionsPerFigure == 0):
                     axes.set_ylabel(r"\textbf{cluster} " + str(indexCluster + 1))
 
-        pyplot.tight_layout()
-        pyplot.savefig(directoryFigures + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "ClustersRawData" + str(indexFigure) + figureExtension)
-        pyplot.close()
+        plt.tight_layout()
+        plt.savefig(directoryFigures + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "ClustersRawData" + str(indexFigure) + figureExtension)
+        plt.close()
 
 
 
@@ -1349,7 +1319,6 @@ Martijn Simon Soen Liong Oei, April 12021 H.E.
 Prepare uniform data sets.
 '''
 
-import numpy, os
 
 def AHCPrepareDataSetUniform(directoryData,
                              fileName,
@@ -1369,9 +1338,9 @@ def AHCPrepareDataSetUniform(directoryData,
     listDimensionIndicesDiscrete = []
     listDimensionValuesDiscrete  = []
     for indexDimension in range(numberOfDimensions):
-        # Find the unique values along the dimension. Then filter out NaNs: 'numpy.nan == numpy.nan' returns False, as NaNs cannot be compared normally.
-        uniqueValues = numpy.unique(observationMatrix[ : , indexDimension])
-        uniqueValues = uniqueValues[numpy.logical_not(numpy.isnan(uniqueValues))]
+        # Find the unique values along the dimension. Then filter out NaNs: 'np.nan == np.nan' returns False, as NaNs cannot be compared normally.
+        uniqueValues = np.unique(observationMatrix[ : , indexDimension])
+        uniqueValues = uniqueValues[np.logical_not(np.isnan(uniqueValues))]
 
         # If there are 10 or fewer different values along the dimension, the dimension is assumed to be discretised.
         if (uniqueValues.shape[0] <= 10):
@@ -1384,27 +1353,27 @@ def AHCPrepareDataSetUniform(directoryData,
 
 
     # Generate and save new data sets.
-    isNaNObservationMatrix       = numpy.isnan(observationMatrix)
+    isNaNObservationMatrix       = np.isnan(observationMatrix)
 
     for indexDataSet in range(numberOfDataSets):
         # Create a copy of 'observationMatrix'.
-        observationMatrixUniform = numpy.copy(observationMatrix)
+        observationMatrixUniform = np.copy(observationMatrix)
 
         # Fill all non-NaN values with draws from the continuous uniform distribution over (0, 1).
-        observationMatrixUniform[numpy.logical_not(isNaNObservationMatrix)] = numpy.random.uniform(low = 0, high = 1, size = numberOfObservations * numberOfDimensions - numpy.sum(isNaNObservationMatrix))
+        observationMatrixUniform[np.logical_not(isNaNObservationMatrix)] = np.random.uniform(low = 0, high = 1, size = numberOfObservations * numberOfDimensions - np.sum(isNaNObservationMatrix))
 
         # Overwrite the entries of the discretised dimensions.
         for indexDimension, valuesDimension in zip(listDimensionIndicesDiscrete, listDimensionValuesDiscrete):
-            isNaNDimension        = numpy.isnan(observationMatrix[ : , indexDimension])
-            numberOfNaNsDimension = numpy.sum(isNaNDimension)
-            observationMatrixUniform[numpy.logical_not(isNaNDimension), indexDimension] = numpy.random.choice(valuesDimension, size = numberOfObservations - numberOfNaNsDimension)
+            isNaNDimension        = np.isnan(observationMatrix[ : , indexDimension])
+            numberOfNaNsDimension = np.sum(isNaNDimension)
+            observationMatrixUniform[np.logical_not(isNaNDimension), indexDimension] = np.random.choice(valuesDimension, size = numberOfObservations - numberOfNaNsDimension)
 
         # Save data set.
         dataSetName              = "uniform" + "_" + str(indexDataSet).zfill(numberOfNumerals)
         directoryDataSet         = directoryData + dataSetName + "/"
         if (not os.path.exists(directoryDataSet)):
             os.makedirs(directoryDataSet)
-        numpy.save(directoryDataSet + "observationMatrix.npy", observationMatrixUniform)
+        np.save(directoryDataSet + "observationMatrix.npy", observationMatrixUniform)
 
         # Report progress.
         print("Saved data set " + dataSetName + " in " + directoryDataSet + "!")
@@ -1417,12 +1386,6 @@ Martijn Simon Soen Liong Oei, April 12021 H.E.
 
 This program compares the coefficients of determination obtained with clustering of uniform random data to clustering of actual data.
 '''
-
-from matplotlib import pyplot
-import matplotlib, numpy
-matplotlib.rcParams["text.usetex"] = True
-matplotlib.rcParams["savefig.dpi"] = 400
-
 def AHCResultsTestUniformity(directoryData,
                              directoryFigures,
                              linkageType,
@@ -1442,9 +1405,9 @@ def AHCResultsTestUniformity(directoryData,
     '''
     linkageTypeCapitalised             = linkageType.capitalize()
     numberOfData                       = numberOfClustersHighest - numberOfClustersLowest + 1 # in 1
-    coefficientsOfDeterminationActual  = numpy.empty(numberOfData) # in 1
-    coefficientsOfDeterminationUniform = numpy.empty((numberOfDataSets, numberOfData)) # in 1
-    rangeClusterNumberMetrics          = numpy.arange(numberOfClustersLowest, numberOfClustersHighest + 1)[ : : -1]
+    coefficientsOfDeterminationActual  = np.empty(numberOfData) # in 1
+    coefficientsOfDeterminationUniform = np.empty((numberOfDataSets, numberOfData)) # in 1
+    rangeClusterNumberMetrics          = np.arange(numberOfClustersLowest, numberOfClustersHighest + 1)[ : : -1]
 
 
     # Load data set names.
@@ -1455,47 +1418,47 @@ def AHCResultsTestUniformity(directoryData,
 
     # Load coefficients of determination.
     for numberOfClusters, j in zip(rangeClusterNumberMetrics, range(numberOfData)):
-        metricsSingleNumber                     = numpy.load(directoryData + "full" + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "MetricsSingleNumber" + ".npy")
+        metricsSingleNumber                     = np.load(directoryData + "full" + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "MetricsSingleNumber" + ".npy")
         coefficientsOfDeterminationActual[j] = metricsSingleNumber[13]
 
     for dataSetName, i in zip(dataSetNames, range(numberOfDataSets)):
         for numberOfClusters, j in zip(rangeClusterNumberMetrics, range(numberOfData)):
-            metricsSingleNumber                      = numpy.load(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "MetricsSingleNumber" + ".npy")
+            metricsSingleNumber                      = np.load(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "MetricsSingleNumber" + ".npy")
             coefficientsOfDeterminationUniform[i, j] = metricsSingleNumber[13]
 
 
     # Print statistics.
-    print(numpy.mean(coefficientsOfDeterminationUniform, axis = 0))
-    print(numpy.mean(coefficientsOfDeterminationUniform, axis = 0) - 2 * numpy.std(coefficientsOfDeterminationUniform, axis = 0))
-    print(numpy.mean(coefficientsOfDeterminationUniform, axis = 0) + 2 * numpy.std(coefficientsOfDeterminationUniform, axis = 0))
+    print(np.mean(coefficientsOfDeterminationUniform, axis = 0))
+    print(np.mean(coefficientsOfDeterminationUniform, axis = 0) - 2 * np.std(coefficientsOfDeterminationUniform, axis = 0))
+    print(np.mean(coefficientsOfDeterminationUniform, axis = 0) + 2 * np.std(coefficientsOfDeterminationUniform, axis = 0))
 
 
     # Plot figure.
-    pyplot.figure(figsize = (figureWidth, figureHeight))
+    plt.figure(figsize = (figureWidth, figureHeight))
 
-    pyplot.scatter(rangeClusterNumberMetrics, coefficientsOfDeterminationActual * 100, s = 4, c = colourActual, label = "actual data")
-    pyplot.plot(rangeClusterNumberMetrics, coefficientsOfDeterminationActual * 100, ls = "-", c = colourActual, alpha = alphaActual)
+    plt.scatter(rangeClusterNumberMetrics, coefficientsOfDeterminationActual * 100, s = 4, c = colourActual, label = "actual data")
+    plt.plot(rangeClusterNumberMetrics, coefficientsOfDeterminationActual * 100, ls = "-", c = colourActual, alpha = alphaActual)
 
     for i in range(numberOfDataSets):
         if (i == 0):
-            pyplot.scatter(rangeClusterNumberMetrics, coefficientsOfDeterminationUniform[i] * 100, s = 4, c = colourUniform, label = "uniform data\n(" + str(numberOfDataSets) + " realisations)")
+            plt.scatter(rangeClusterNumberMetrics, coefficientsOfDeterminationUniform[i] * 100, s = 4, c = colourUniform, label = "uniform data\n(" + str(numberOfDataSets) + " realisations)")
         else:
-            pyplot.scatter(rangeClusterNumberMetrics, coefficientsOfDeterminationUniform[i] * 100, s = 4, c = colourUniform)
-        pyplot.plot(rangeClusterNumberMetrics, coefficientsOfDeterminationUniform[i] * 100, ls = "-", c = colourUniform, alpha = alphaUniform)
+            plt.scatter(rangeClusterNumberMetrics, coefficientsOfDeterminationUniform[i] * 100, s = 4, c = colourUniform)
+        plt.plot(rangeClusterNumberMetrics, coefficientsOfDeterminationUniform[i] * 100, ls = "-", c = colourUniform, alpha = alphaUniform)
 
-    pyplot.gca().invert_xaxis()
-    pyplot.grid(ls = "--", alpha = .2)
-    pyplot.xticks(rangeClusterNumberMetrics)#, fontsize = "x-large")
-    #pyplot.yticks(fontsize = "x-large")
-    pyplot.xlim(rangeClusterNumberMetrics[0] + .1, rangeClusterNumberMetrics[-1] - .1)
-    #pyplot.ylim(0, 50)
-    pyplot.xlabel("number of clusters (1)")#, fontsize = "x-large")
-    pyplot.ylabel(r"fraction of explained variance (\%)")#, fontsize = "x-large")
-    pyplot.legend(loc = "upper right", borderpad = .15)#, fontsize = "x-large")
-    pyplot.title(r"goodness of fit: coefficient of determination $R^2$ $\vert$ $\textbf{" + linkageType + "}$ linkage")
-    pyplot.tight_layout()
-    pyplot.savefig(directoryFigures + "AHC" + linkageTypeCapitalised + "CoefficientsOfDeterminationSignificance" + figureExtension)
-    pyplot.close()
+    plt.gca().invert_xaxis()
+    plt.grid(ls = "--", alpha = .2)
+    plt.xticks(rangeClusterNumberMetrics)#, fontsize = "x-large")
+    #plt.yticks(fontsize = "x-large")
+    plt.xlim(rangeClusterNumberMetrics[0] + .1, rangeClusterNumberMetrics[-1] - .1)
+    #plt.ylim(0, 50)
+    plt.xlabel("number of clusters (1)")#, fontsize = "x-large")
+    plt.ylabel(r"fraction of explained variance (\%)")#, fontsize = "x-large")
+    plt.legend(loc = "upper right", borderpad = .15)#, fontsize = "x-large")
+    plt.title(r"goodness of fit: coefficient of determination $R^2$ $\vert$ $\textbf{" + linkageType + "}$ linkage")
+    plt.tight_layout()
+    plt.savefig(directoryFigures + "AHC" + linkageTypeCapitalised + "CoefficientsOfDeterminationSignificance" + figureExtension)
+    plt.close()
 
 
 
@@ -1505,9 +1468,6 @@ Martijn Simon Soen Liong Oei, April 12021 H.E.
 
 Prepare jackknife data sets.
 '''
-
-import numpy, os
-
 def AHCPrepareDataSetJackknife(directoryData,
                                fileName,
                                numberOfDataSets,
@@ -1525,7 +1485,7 @@ def AHCPrepareDataSetJackknife(directoryData,
     # Generate and save new data sets.
     for indexDataSet in range(numberOfDataSets):
         # Generate data set.
-        indicesObservations     = numpy.random.choice(numpy.arange(numberOfObservations), size = numberOfObservationsSubset, replace = False)
+        indicesObservations     = np.random.choice(np.arange(numberOfObservations), size = numberOfObservationsSubset, replace = False)
         observationMatrixSubset = observationMatrix[indicesObservations]
 
         # Save data set.
@@ -1533,8 +1493,8 @@ def AHCPrepareDataSetJackknife(directoryData,
         directoryDataSet        = directoryData + dataSetName + "/"
         if (not os.path.exists(directoryDataSet)):
             os.makedirs(directoryDataSet)
-        numpy.save(directoryDataSet + "observationMatrix.npy",   observationMatrixSubset)
-        numpy.save(directoryDataSet + "indicesObservations.npy", indicesObservations)
+        np.save(directoryDataSet + "observationMatrix.npy",   observationMatrixSubset)
+        np.save(directoryDataSet + "indicesObservations.npy", indicesObservations)
 
         # Report progress.
         print("Saved data set " + dataSetName + " in " + directoryDataSet + "!")
@@ -1545,15 +1505,6 @@ def AHCPrepareDataSetJackknife(directoryData,
 '''
 Martijn Simon Soen Liong Oei, April 12021 H.E.
 '''
-
-import numpy
-from scipy import stats
-from matplotlib import cm, pyplot
-import matplotlib
-matplotlib.rcParams["text.usetex"] = True
-matplotlib.rcParams["savefig.dpi"] = 400
-
-
 def AHCResultsJackknife(directoryData,
                         directoryFigures,
                         linkageType,
@@ -1579,7 +1530,7 @@ def AHCResultsJackknife(directoryData,
     '''
 
     # Load the cluster list of the full data set.
-    clusterListFull                = numpy.load(directoryData + "full/AHC" + linkageType.capitalize() + str(numberOfClusters) + "ClusterList.npy", allow_pickle = True)
+    clusterListFull                = np.load(directoryData + "full/AHC" + linkageType.capitalize() + str(numberOfClusters) + "ClusterList.npy", allow_pickle = True)
 
 
     # Find the integer 'numberOfObservations', representing the number of observations in the full data set.
@@ -1589,7 +1540,7 @@ def AHCResultsJackknife(directoryData,
         numberOfObservations += len(indicesObservations)
 
     # Generate the 1D array 'indicesCluster', which is an alternative way to store the same information present in 'clusterListFull'.
-    indicesCluster                 = numpy.empty(numberOfObservations, dtype = numpy.uint16)
+    indicesCluster                 = np.empty(numberOfObservations, dtype = np.uint16)
     for indexCluster in range(numberOfClusters):
         indicesObservations                 = clusterListFull[indexCluster]
         indicesCluster[indicesObservations] = indexCluster
@@ -1599,22 +1550,22 @@ def AHCResultsJackknife(directoryData,
 
 
     # Count, for each observation pair, how often the pair occurs in the pool of jackknife subsets.
-    inSameJackknifeSubsetCount     = numpy.zeros((numberOfObservations, numberOfObservations), dtype = numpy.uint32)
+    inSameJackknifeSubsetCount     = np.zeros((numberOfObservations, numberOfObservations), dtype = np.uint32)
     # Count, for each observation pair, how often the pair is put in the same cluster (when it appears in the jackknife subsets).
-    inSameJackknifeClusterCount    = numpy.zeros((numberOfObservations, numberOfObservations), dtype = numpy.uint32)
+    inSameJackknifeClusterCount    = np.zeros((numberOfObservations, numberOfObservations), dtype = np.uint32)
 
     # Iterate over clustering results of jackknife subsets.
     for indexDataSet in range(numberOfDataSets):
         directoryDataSet            = directoryData + "jackknife" + str(numberOfObservationsSubset) + "_" + str(indexDataSet).zfill(numberOfNumerals) + "/"
 
         # Increase 'inSameJackknifeSubsetCount' by 1 for each observation pair that occurs in the current jackknife subset.
-        indicesObservations         = numpy.load(directoryDataSet + "indicesObservations.npy")
-        indicesObservationsTiled    = numpy.tile(indicesObservations, numberOfObservationsSubset)
-        indicesObservationsRepeated = numpy.repeat(indicesObservations, numberOfObservationsSubset)
+        indicesObservations         = np.load(directoryDataSet + "indicesObservations.npy")
+        indicesObservationsTiled    = np.tile(indicesObservations, numberOfObservationsSubset)
+        indicesObservationsRepeated = np.repeat(indicesObservations, numberOfObservationsSubset)
         inSameJackknifeSubsetCount[indicesObservationsTiled, indicesObservationsRepeated] += 1
 
         # Load the clustering result of the current jackknife subset.
-        clusterList                 = numpy.load(directoryDataSet + "AHC" + linkageType.capitalize() + str(numberOfClusters) + "ClusterList.npy", allow_pickle = True)
+        clusterList                 = np.load(directoryDataSet + "AHC" + linkageType.capitalize() + str(numberOfClusters) + "ClusterList.npy", allow_pickle = True)
         # Iterate over current jackknife subset clusters.
         for indexCluster in range(numberOfClusters):
             # Find the full data set indices of the observations in this cluster.
@@ -1623,100 +1574,100 @@ def AHCResultsJackknife(directoryData,
             numberOfObservationsCluster        = len(indicesObservationsCluster)
 
             # Increase 'inSameJackknifeClusterCount' by 1 for each observation pair that occurs in the current cluster.
-            indicesObservationsClusterTiled    = numpy.tile(indicesObservationsCluster, numberOfObservationsCluster)
-            indicesObservationsClusterRepeated = numpy.repeat(indicesObservationsCluster, numberOfObservationsCluster)
+            indicesObservationsClusterTiled    = np.tile(indicesObservationsCluster, numberOfObservationsCluster)
+            indicesObservationsClusterRepeated = np.repeat(indicesObservationsCluster, numberOfObservationsCluster)
             inSameJackknifeClusterCount[indicesObservationsClusterTiled, indicesObservationsClusterRepeated] += 1
 
 
     # Calculate, for each observation pair, what fraction of jackknife subsets that contain the pair, has the pair clustered together.
-    inSameJackknifeClusterFraction = inSameJackknifeClusterCount / numpy.maximum(inSameJackknifeSubsetCount, 1)
+    inSameJackknifeClusterFraction = inSameJackknifeClusterCount / np.maximum(inSameJackknifeSubsetCount, 1)
 
 
     # Calculate, for each observation, what fraction of its relations with other (!) observations have been correct (i.e. as they were in the full data set clustering).
-    correctRelationFraction        = (numpy.sum(inSameCluster * inSameJackknifeClusterCount + numpy.logical_not(inSameCluster) * (inSameJackknifeSubsetCount - inSameJackknifeClusterCount), axis = 0) - numpy.diag(inSameJackknifeSubsetCount)) / (numpy.sum(inSameJackknifeSubsetCount, axis = 0) - numpy.diag(inSameJackknifeSubsetCount))
+    correctRelationFraction        = (np.sum(inSameCluster * inSameJackknifeClusterCount + np.logical_not(inSameCluster) * (inSameJackknifeSubsetCount - inSameJackknifeClusterCount), axis = 0) - np.diag(inSameJackknifeSubsetCount)) / (np.sum(inSameJackknifeSubsetCount, axis = 0) - np.diag(inSameJackknifeSubsetCount))
 
 
     # Calculate, for each full data set cluster pair, what fraction of all pairs of their constituents in the jackknife subsets were ('wrongly') clustered together. We call this 'mixing'.
-    mixingMatrix                   = numpy.zeros((numberOfClusters, numberOfClusters))
-    mixingMatrix[numpy.tril_indices(numberOfClusters, k = 0)] = numpy.nan
+    mixingMatrix                   = np.zeros((numberOfClusters, numberOfClusters))
+    mixingMatrix[np.tril_indices(numberOfClusters, k = 0)] = np.nan
     for i in range(numberOfClusters):
         indicesObservations1 = clusterListFull[i]
         for j in range(i + 1, numberOfClusters):
             indicesObservations2                = clusterListFull[j]
             inSameJackknifeClusterCountClusters = inSameJackknifeClusterCount[indicesObservations1][ : , indicesObservations2]
             inSameJackknifeSubsetCountClusters  = inSameJackknifeSubsetCount[indicesObservations1][ : , indicesObservations2]
-            mixingMatrix[i, j]                  = numpy.sum(inSameJackknifeClusterCountClusters) / numpy.sum(inSameJackknifeSubsetCountClusters)
+            mixingMatrix[i, j]                  = np.sum(inSameJackknifeClusterCountClusters) / np.sum(inSameJackknifeSubsetCountClusters)
     mixingMatrixRank               = (numberOfClusters * (numberOfClusters - 1) / 2 - stats.rankdata(mixingMatrix).reshape((numberOfClusters, numberOfClusters)) + 1).astype(int)
 
 
 
     # Visualise results.
-    pyplot.figure(figsize = (figureWidthMixing, figureHeightMixing))
-    image                          = pyplot.imshow(mixingMatrix * 100, cmap = colourMapMixing, vmin = probabilityMixingMin * 100, vmax = probabilityMixingMax * 100)
-    axesMain                       = pyplot.gca()
+    plt.figure(figsize = (figureWidthMixing, figureHeightMixing))
+    image                          = plt.imshow(mixingMatrix * 100, cmap = colourMapMixing, vmin = probabilityMixingMin * 100, vmax = probabilityMixingMax * 100)
+    axesMain                       = plt.gca()
     axesColourBar                  = make_axes_locatable(axesMain).append_axes("right", size = colourBarWidth, pad = colourBarDistance)
-    colourBar                      = pyplot.colorbar(image, cax = axesColourBar, label = r"mixing probability (\%)")
+    colourBar                      = plt.colorbar(image, cax = axesColourBar, label = r"mixing probability (\%)")
 
-    #objectColourBar = pyplot.colorbar()#, size = "x-large")#, labelsize = "x-large")
+    #objectColourBar = plt.colorbar()#, size = "x-large")#, labelsize = "x-large")
     #objectColourBar.ax.tick_params(labelsize = 22)#"xx-large")
     #objectColourBar.set_label(label = "mixing probability (1)")#, size = 22)#"xx-large")
 
     for i in range(numberOfClusters):
         for j in range(i + 1, numberOfClusters):
             if (showRanks):
-                axesMain.text(j, i, r"\textbf{rank " + str(mixingMatrixRank[i, j]) + ":}\n" + str(numpy.round(mixingMatrix[i, j] * 100, numberOfDecimals)) + r"\%", c = colourTextMixing, horizontalalignment = "center", verticalalignment = "center", fontsize = "x-small")
+                axesMain.text(j, i, r"\textbf{rank " + str(mixingMatrixRank[i, j]) + ":}\n" + str(np.round(mixingMatrix[i, j] * 100, numberOfDecimals)) + r"\%", c = colourTextMixing, horizontalalignment = "center", verticalalignment = "center", fontsize = "x-small")
             else:
-                axesMain.text(j, i, str(numpy.round(mixingMatrix[i, j] * 100, numberOfDecimals)) + r"\%", c = colourTextMixing, horizontalalignment = "center", verticalalignment = "center", fontsize = "x-small")
-    #pyplot.xlabel("full data set cluster ID")
-    #pyplot.ylabel("full data set cluster ID")
+                axesMain.text(j, i, str(np.round(mixingMatrix[i, j] * 100, numberOfDecimals)) + r"\%", c = colourTextMixing, horizontalalignment = "center", verticalalignment = "center", fontsize = "x-small")
+    #plt.xlabel("full data set cluster ID")
+    #plt.ylabel("full data set cluster ID")
     axesMain.set_xlabel("cluster ID")#, fontsize = 22)#"xx-large")
     axesMain.set_ylabel("cluster ID")#, fontsize = 22)#"xx-large")
-    axesMain.set_xticks(numpy.arange(numberOfClusters))
-    axesMain.set_xticklabels(numpy.arange(numberOfClusters) + 1)
-    axesMain.set_yticks(numpy.arange(numberOfClusters))
-    axesMain.set_yticklabels(numpy.arange(numberOfClusters) + 1)
-    #pyplot.xticks(fontsize = 22)#"xx-large")
-    #pyplot.yticks(fontsize = 22)#"xx-large")
-    axesMain.set_title(r"\textbf{jackknife analysis}" + "\n" + r"\textnumero\ observations in subset: " + str(numberOfObservationsSubset) + r" (" + str(numpy.round(numberOfObservationsSubset / numberOfObservations * 100, 1)) + "\% of " + str(numberOfObservations) + r") $\vert$ " + linkageType + r" linkage")#$\vert$ \textnumero\ observations in total: " + str(numberOfObservations) + r"
-    #pyplot.title(r"\textbf{agglomerative hierarchical clustering} jackknife analysis" + "\n" + linkageType + r" linkage $\vert$ \textnumero\ clusters: " + str(numberOfClusters) + r" $\vert$ \textnumero\ observations in subset: " + str(numberOfObservationsSubset))
-    #pyplot.tight_layout()
-    pyplot.subplots_adjust(left = .07, right = .91, bottom = .07, top = .93)
-    pyplot.savefig(directoryFigures + "AHC" + linkageType.capitalize() + str(numberOfClusters) + "Jackknife" + str(numberOfObservationsSubset) + "Mixing" + figureExtension)
-    pyplot.close()
+    axesMain.set_xticks(np.arange(numberOfClusters))
+    axesMain.set_xticklabels(np.arange(numberOfClusters) + 1)
+    axesMain.set_yticks(np.arange(numberOfClusters))
+    axesMain.set_yticklabels(np.arange(numberOfClusters) + 1)
+    #plt.xticks(fontsize = 22)#"xx-large")
+    #plt.yticks(fontsize = 22)#"xx-large")
+    axesMain.set_title(r"\textbf{jackknife analysis}" + "\n" + r"\textnumero\ observations in subset: " + str(numberOfObservationsSubset) + r" (" + str(np.round(numberOfObservationsSubset / numberOfObservations * 100, 1)) + "\% of " + str(numberOfObservations) + r") $\vert$ " + linkageType + r" linkage")#$\vert$ \textnumero\ observations in total: " + str(numberOfObservations) + r"
+    #plt.title(r"\textbf{agglomerative hierarchical clustering} jackknife analysis" + "\n" + linkageType + r" linkage $\vert$ \textnumero\ clusters: " + str(numberOfClusters) + r" $\vert$ \textnumero\ observations in subset: " + str(numberOfObservationsSubset))
+    #plt.tight_layout()
+    plt.subplots_adjust(left = .07, right = .91, bottom = .07, top = .93)
+    plt.savefig(directoryFigures + "AHC" + linkageType.capitalize() + str(numberOfClusters) + "Jackknife" + str(numberOfObservationsSubset) + "Mixing" + figureExtension)
+    plt.close()
 
 
-    pyplot.figure(figsize = (figureWidthAll, figureHeightAll))
-    pyplot.imshow(inSameJackknifeClusterFraction, cmap = "cividis", vmin = 0, vmax = 1)
-    pyplot.colorbar(label = "probability of staying together in jackknife clusterings (1)")
-    pyplot.xlabel("full data set observation index (1)")
-    pyplot.ylabel("full data set observation index (1)")
-    pyplot.title(r"\textbf{agglomerative hierarchical clustering} jackknife analysis" + "\n" + linkageType + r" linkage $\vert$ \textnumero\ clusters: " + str(numberOfClusters) + r" $\vert$ \textnumero\ observations in subset: " + str(numberOfObservationsSubset))
-    pyplot.tight_layout()
-    pyplot.savefig(directoryFigures + "AHC" + linkageType.capitalize() + str(numberOfClusters) + "Jackknife" + str(numberOfObservationsSubset) + "All" + figureExtension)
-    pyplot.close()
+    plt.figure(figsize = (figureWidthAll, figureHeightAll))
+    plt.imshow(inSameJackknifeClusterFraction, cmap = "cividis", vmin = 0, vmax = 1)
+    plt.colorbar(label = "probability of staying together in jackknife clusterings (1)")
+    plt.xlabel("full data set observation index (1)")
+    plt.ylabel("full data set observation index (1)")
+    plt.title(r"\textbf{agglomerative hierarchical clustering} jackknife analysis" + "\n" + linkageType + r" linkage $\vert$ \textnumero\ clusters: " + str(numberOfClusters) + r" $\vert$ \textnumero\ observations in subset: " + str(numberOfObservationsSubset))
+    plt.tight_layout()
+    plt.savefig(directoryFigures + "AHC" + linkageType.capitalize() + str(numberOfClusters) + "Jackknife" + str(numberOfObservationsSubset) + "All" + figureExtension)
+    plt.close()
 
 
-    figureObject, axesGrid         = pyplot.subplots(numberOfClusters, 3, figsize = (12, numberOfClusters * 4))
-    binEdges1                      = numpy.linspace(0, 1, num = 10 + 1, endpoint = True) # in 1
-    binEdges2                      = numpy.linspace(.5, 1, num = 20 + 1, endpoint = True) # in 1
+    figureObject, axesGrid         = plt.subplots(numberOfClusters, 3, figsize = (12, numberOfClusters * 4))
+    binEdges1                      = np.linspace(0, 1, num = 10 + 1, endpoint = True) # in 1
+    binEdges2                      = np.linspace(.5, 1, num = 20 + 1, endpoint = True) # in 1
 
     # Iterate over full data set clusters.
     for indexCluster in range(numberOfClusters):
         indicesObservations                         = clusterListFull[indexCluster]
         numberOfObservationsCluster                 = len(indicesObservations)
-        indicesObservationsTiled                    = numpy.tile(indicesObservations, numberOfObservationsCluster)
-        indicesObservationsRepeated                 = numpy.repeat(indicesObservations, numberOfObservationsCluster)
+        indicesObservationsTiled                    = np.tile(indicesObservations, numberOfObservationsCluster)
+        indicesObservationsRepeated                 = np.repeat(indicesObservations, numberOfObservationsCluster)
 
         inSameJackknifeClusterFractionCluster       = inSameJackknifeClusterFraction[indicesObservationsTiled, indicesObservationsRepeated].reshape((numberOfObservationsCluster, numberOfObservationsCluster))
-        inSameJackknifeClusterFractionClusterUnique = inSameJackknifeClusterFractionCluster[numpy.triu_indices(numberOfObservationsCluster, k = 1)]
-        binCounts1, binEdges1                       = numpy.histogram(inSameJackknifeClusterFractionClusterUnique, bins = binEdges1)
+        inSameJackknifeClusterFractionClusterUnique = inSameJackknifeClusterFractionCluster[np.triu_indices(numberOfObservationsCluster, k = 1)]
+        binCounts1, binEdges1                       = np.histogram(inSameJackknifeClusterFractionClusterUnique, bins = binEdges1)
 
-        axesGrid[indexCluster, 0].bar((binEdges1[1 : ] + binEdges1[ : -1]) / 2, binCounts1, width = binEdges1[1] - binEdges1[0], color = cm.cividis(0), label = "mean: " + str(numpy.round(numpy.mean(inSameJackknifeClusterFractionClusterUnique), 2)) + r" $\vert$ median: " + str(numpy.round(numpy.median(inSameJackknifeClusterFractionClusterUnique), 2)), capstyle = "round")
+        axesGrid[indexCluster, 0].bar((binEdges1[1 : ] + binEdges1[ : -1]) / 2, binCounts1, width = binEdges1[1] - binEdges1[0], color = cm.cividis(0), label = "mean: " + str(np.round(np.mean(inSameJackknifeClusterFractionClusterUnique), 2)) + r" $\vert$ median: " + str(np.round(np.median(inSameJackknifeClusterFractionClusterUnique), 2)), capstyle = "round")
         axesGrid[indexCluster, 1].imshow(inSameJackknifeClusterFractionCluster, cmap = cm.cividis, vmin = 0, vmax = 1)
 
         correctRelationFractionCluster              = correctRelationFraction[indicesObservations]
-        binCounts2, binEdges2                       = numpy.histogram(correctRelationFractionCluster, bins = binEdges2)
-        axesGrid[indexCluster, 2].bar((binEdges2[1 : ] + binEdges2[ : -1]) / 2, binCounts2, width = binEdges2[1] - binEdges2[0], color = "gray", label = "mean: " + str(numpy.round(numpy.mean(correctRelationFractionCluster), 2)) + r" $\vert$ median: " + str(numpy.round(numpy.median(correctRelationFractionCluster), 2)))
+        binCounts2, binEdges2                       = np.histogram(correctRelationFractionCluster, bins = binEdges2)
+        axesGrid[indexCluster, 2].bar((binEdges2[1 : ] + binEdges2[ : -1]) / 2, binCounts2, width = binEdges2[1] - binEdges2[0], color = "gray", label = "mean: " + str(np.round(np.mean(correctRelationFractionCluster), 2)) + r" $\vert$ median: " + str(np.round(np.median(correctRelationFractionCluster), 2)))
 
         axesGrid[indexCluster, 0].grid(ls = "--", axis = "y", alpha = .2)
         axesGrid[indexCluster, 2].grid(ls = "--", axis = "y", alpha = .2)
@@ -1734,12 +1685,12 @@ def AHCResultsJackknife(directoryData,
         axesGrid[indexCluster, 1].set_title("cluster " + str(indexCluster + 1) + " ($N$ = " + str(numberOfObservationsCluster) + ")")
         axesGrid[indexCluster, 2].set_title("cluster " + str(indexCluster + 1) + " ($N$ = " + str(numberOfObservationsCluster) + ")")
 
-    pyplot.tight_layout()
-    pyplot.savefig(directoryFigures + "AHC" + linkageType.capitalize() + str(numberOfClusters) + "Jackknife" + str(numberOfObservationsSubset) + figureExtension)
-    pyplot.close()
+    plt.tight_layout()
+    plt.savefig(directoryFigures + "AHC" + linkageType.capitalize() + str(numberOfClusters) + "Jackknife" + str(numberOfObservationsSubset) + figureExtension)
+    plt.close()
 
 '''
-wrongRelationFraction          = numpy.sum(inSameCluster * (inSameJackknifeSubsetCount - inSameJackknifeClusterCount) + numpy.logical_not(inSameCluster) * inSameJackknifeClusterCount, axis = 0) / (numpy.sum(inSameJackknifeSubsetCount, axis = 0) - numpy.diag(inSameJackknifeSubsetCount))
+wrongRelationFraction          = np.sum(inSameCluster * (inSameJackknifeSubsetCount - inSameJackknifeClusterCount) + np.logical_not(inSameCluster) * inSameJackknifeClusterCount, axis = 0) / (np.sum(inSameJackknifeSubsetCount, axis = 0) - np.diag(inSameJackknifeSubsetCount))
 
 for i in range(1078):
     print(correctRelationFraction[i] + wrongRelationFraction[i])
@@ -1757,8 +1708,6 @@ Be sure to rerun those scripts after reordering to generate up-to-date plots.
 
 Note that this script does not automatically change the ordering of related clustering run outcomes (e.g. for the same linkage type, but for a slightly higher or lower cluster number).
 '''
-import numpy
-
 def AHCReorder(directoryData,
                linkageType,
                indicesNew,
@@ -1773,13 +1722,13 @@ def AHCReorder(directoryData,
 
     # Load data.
     # Load the cluster list.
-    clusterList                       = numpy.load(directoryData + dataSetName + "/" + nameFileClusterList, allow_pickle = True)
+    clusterList                       = np.load(directoryData + dataSetName + "/" + nameFileClusterList, allow_pickle = True)
     # Load the between-clusters distance matrices.
     '''
     # Not currently implemented.
     '''
     # Load the within-cluster distances.
-    distanceIntraClustersList         = numpy.load(directoryData + dataSetName + "/" + nameFileDistanceIntraClustersList, allow_pickle = True)
+    distanceIntraClustersList         = np.load(directoryData + dataSetName + "/" + nameFileDistanceIntraClustersList, allow_pickle = True)
 
     # Create new lists.
     clusterListNew                    = []
@@ -1789,8 +1738,8 @@ def AHCReorder(directoryData,
         distanceIntraClustersListNew.append(distanceIntraClustersList[indexNew])
 
     # Save the results by overwriting previous files. By applying the appropriate permutation, this can be undone.
-    numpy.save(directoryData + dataSetName + "/" + nameFileClusterList,               clusterListNew)
-    numpy.save(directoryData + dataSetName + "/" + nameFileDistanceIntraClustersList, distanceIntraClustersListNew)
+    np.save(directoryData + dataSetName + "/" + nameFileClusterList,               clusterListNew)
+    np.save(directoryData + dataSetName + "/" + nameFileDistanceIntraClustersList, distanceIntraClustersListNew)
 
 
 
@@ -1798,9 +1747,6 @@ def AHCReorder(directoryData,
 '''
 Martijn Simon Soen Liong Oei, April 12021 H.E.
 '''
-
-import numpy, pandas
-
 def AHCResultsAmendCSV(directoryData,
                        fileNameInput,
                        fileNameOutput,
@@ -1816,17 +1762,17 @@ def AHCResultsAmendCSV(directoryData,
     linkageTypeCapitalised = linkageType.capitalize()
 
     # Load data.
-    clusterList            = numpy.load(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "ClusterList" + ".npy", allow_pickle = True)
+    clusterList            = np.load(directoryData + dataSetName + "/" + "AHC" + linkageTypeCapitalised + str(numberOfClusters) + "ClusterList" + ".npy", allow_pickle = True)
     numberOfObservations   = 0
     for cluster in clusterList:
         numberOfObservations += len(cluster)
 
     # Generate column.
-    indicesCluster         = numpy.empty(numberOfObservations, dtype = int)
+    indicesCluster         = np.empty(numberOfObservations, dtype = int)
     for indexCluster in range(numberOfClusters):
         indicesCluster[clusterList[indexCluster]] = indexCluster + 1
 
     # Store column.
-    dataFrame              = pandas.read_csv(directoryData + fileNameInput)
+    dataFrame              = pd.read_csv(directoryData + fileNameInput)
     dataFrame["cluster index (" + dataSetName + ", " + linkageType + ", N = " + str(numberOfClusters) + ")"] = indicesCluster
     dataFrame.to_csv(path_or_buf = directoryData + fileNameOutput, index = False)
